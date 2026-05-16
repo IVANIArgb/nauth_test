@@ -1,0 +1,80 @@
+name: Kerberos SSO CI
+
+on:
+  push:
+    paths:
+      - "kerberos_ad_service/**"
+      - ".github/workflows/kerberos-sso-ci.yml"
+  pull_request:
+    paths:
+      - "kerberos_ad_service/**"
+
+jobs:
+  test-build:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: kerberos_ad_service
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements-dev.txt
+
+      - name: Run unit and integration tests
+        run: |
+          python -m pytest tests/unit -q
+          python -m pytest tests/integration -q
+
+      - name: Build Docker image
+        run: docker build -t kerberos-sso:ci -f Dockerfile .
+
+  publish-image:
+    needs: test-build
+    if: github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Log in to GHCR
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Build and push image
+        uses: docker/build-push-action@v6
+        with:
+          context: kerberos_ad_service
+          file: kerberos_ad_service/Dockerfile
+          push: true
+          tags: ghcr.io/${{ github.repository_owner }}/kerberos-sso:latest
+
+  deploy-kubernetes:
+    needs: publish-image
+    if: github.ref == 'refs/heads/main' && secrets.KUBE_CONFIG_BASE64 != ''
+    runs-on: ubuntu-latest
+    steps:
+      - name: Setup kubectl
+        uses: azure/setup-kubectl@v4
+
+      - name: Configure kubeconfig
+        run: |
+          mkdir -p "$HOME/.kube"
+          echo "${{ secrets.KUBE_CONFIG_BASE64 }}" | base64 -d > "$HOME/.kube/config"
+
+      - name: Restart deployment
+        run: |
+          kubectl -n "${{ secrets.KUBE_NAMESPACE }}" set image deployment/kerberos-sso \
+            kerberos-sso=ghcr.io/${{ github.repository_owner }}/kerberos-sso:latest
+          kubectl -n "${{ secrets.KUBE_NAMESPACE }}" rollout status deployment/kerberos-sso --timeout=180s

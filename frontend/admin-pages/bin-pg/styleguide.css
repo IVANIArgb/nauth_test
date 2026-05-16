@@ -1,0 +1,22 @@
+/* Styleguide для страницы корзины
+ * Делаем оформление таким же, как у страницы категорий/курсов.
+ */
+
+.main-content {
+  flex: 1;
+  padding: 2rem;
+  max-width: 1200px;
+  margin: 0 auto;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.page-title {
+  font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display", "SF Pro Text", "Helvetica Neue", Helvetica, Arial, sans-serif;
+  font-size: 2.5rem;
+  font-weight: 500;
+  color: #242627;
+  margin-bottom: 2rem;
+  text-align: center;
+}
+

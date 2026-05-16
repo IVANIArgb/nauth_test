@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<html lang="ru">
+  <head>
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta charset="utf-8" />
+    <title>LearnSite - Уроки</title>
+    <link rel="stylesheet" href="/all-lessons-pg/globals.css" />
+    <link rel="stylesheet" href="/all-lessons-pg/styleguide.css" />
+    <link rel="stylesheet" href="/templates/css/header-footer.css" />
+    <link rel="stylesheet" href="/templates/css/unified-cards.css" />
+    <link rel="stylesheet" href="/templates/css/custom-modal.css" />
+    <link rel="stylesheet" href="/all-lessons-pg/style.css" />
+  </head>
+  <body>
+    <div class="screen">
+
+      <main class="main-content">
+        <h1 class="page-title">Уроки</h1>
+        <div class="add-lesson-section" style="display: none;" id="add-lesson-section">
+          <button class="add-lesson-btn" id="create-lesson-btn">
+            <span class="add-text">Добавить урок</span>
+          </button>
+        </div>
+        <section class="courses-grid">
+          <!-- Уроки загружаются динамически через lessons-list.js -->
+        </section>
+      </main>
+      <footer class="footer">
+        <div class="footer-content">
+          <p class="description">платформа для обучения и тестирования</p>
+          <nav class="footer-nav">
+            <ul>
+              <li><a href="#">о нас</a></li>
+              <li><a href="#">дать обратную связь</a></li>
+            </ul>
+          </nav>
+        </div>
+      </footer>
+      <div class="made-by">
+          <p>Made by: Manakov Ivan</p>
+      </div>
+    </div>
+    <script src="/templates/js/unified-card-builder.js"></script>
+    <script src="/templates/js/custom-modal.js"></script>
+    <script src="/all-lessons-pg/lessons-list.js"></script>
+  </body>
+</html>

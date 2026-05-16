@@ -1,0 +1,28 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: kerberos-sso-config
+  namespace: __NAMESPACE__
+data:
+  APP_ENV: "prod"
+  HOST: "0.0.0.0"
+  PORT: "5000"
+  DEBUG: "false"
+  SPN_HOSTNAME: "__HOSTNAME__"
+  KERBEROS_SERVICE_NAME: "__KERBEROS_SERVICE_NAME__"
+  KERBEROS_REALM: "__KERBEROS_REALM__"
+  KERBEROS_VERIFY_KINIT: "false"
+  KRB5_CONFIG: "/app/secrets/krb5.conf"
+  LDAP_URI: "__LDAP_URI__"
+  LDAP_BASE_DN: "__LDAP_BASE_DN__"
+  LDAP_CONNECT_TIMEOUT_S: "5"
+  LDAP_READ_TIMEOUT_S: "5"
+  LDAP_RETRY_ATTEMPTS: "3"
+  LDAP_RETRY_DELAY_S: "0.5"
+  DATABASE_URL: "sqlite:////data/users.db"
+  LOG_LEVEL: "__LOG_LEVEL__"
+  RATE_LIMIT_DEFAULT: "30 per minute"
+  RATE_LIMIT_AUTH: "10 per minute"
+  RATE_LIMIT_STORAGE_URI: "redis://kerberos-sso-redis:6379/0"
+  PREFLIGHT_ENABLED: "false"
+  PREFLIGHT_KINIT_ENABLED: "false"

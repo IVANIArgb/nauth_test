@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<html lang="ru">
+  <head>
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta charset="utf-8" />
+    <title>LearnSite - Категории</title>
+    <link rel="stylesheet" href="/all-categories-pg/globals.css" />
+    <link rel="stylesheet" href="/all-categories-pg/styleguide.css" />
+    <link rel="stylesheet" href="/templates/css/header-footer.css" />
+    <link rel="stylesheet" href="/templates/css/unified-cards.css" />
+    <link rel="stylesheet" href="/templates/css/custom-modal.css" />
+    <link rel="stylesheet" href="/all-categories-pg/style.css" />
+  </head>
+  <body>
+    <div class="screen">
+      <main class="main-content">
+        <h1 class="page-title">Категории</h1>
+        <div class="add-category-section" style="display: none;" id="add-category-section">
+          <button class="add-category-btn" id="create-category-btn">
+            <span class="add-text">Добавить категорию</span>
+          </button>
+        </div>
+        <section class="courses-grid categories-grid">
+          <!-- Категории загружаются динамически через categories-list.js -->
+        </section>
+      </main>
+    </div>
+    <script src="/templates/js/unified-card-builder.js"></script>
+    <script src="/templates/js/custom-modal.js"></script>
+    <script src="/all-categories-pg/categories-list.js"></script>
+  </body>
+</html>

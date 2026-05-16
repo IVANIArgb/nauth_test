@@ -1,0 +1,69 @@
+# Python
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.Python
+build/
+dist/
+*.egg-info/
+
+# Virtualenv
+venv/
+.venv/
+
+# Logs & uploads
+backend/logs/
+backend/uploads/
+backend/users_courses.db
+
+# Database files (do not commit)
+database/*.db
+database/*.db.backup_*
+
+# OS / Editors
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/
+
+# Env
+.env
+.env.*
+!.env.example
+!docker.env.example
+!docker.env.sso.example
+!env.example
+!env.development.example
+scripts/sync/sync.env
+scripts/sync/sync-smb.env
+
+# Docker export / образы (не в git)
+docker_export/
+
+# Медиа / загрузки
+LNSVImage/
+backend/uploads/
+categories-data/
+
+# Python venv
+.venv/
+
+# Cursor / IDE
+.cursor/
+
+# Kerberos: keytab не коммитить
+kerberos/http.keytab
+kerberos/*.keytab
+kerberos_ad_service/secrets/*.keytab
+kerberos_ad_service/users.db
+
+# Node (just in case)
+node_modules/
+
+# Отчёты тестов (папка tests/reports/ создаётся с .gitkeep)
+tests/reports/coverage/
+tests/reports/junit.xml
+tests/reports/*.xml
+
+

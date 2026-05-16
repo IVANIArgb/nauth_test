@@ -1,0 +1,491 @@
+<!DOCTYPE html>
+<html lang="ru">
+  <head>
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta charset="utf-8" />
+    <title>LearnSite - Профиль пользователя</title>
+    <link rel="stylesheet" href="/users-info-pg/globals.css" />
+    <link rel="stylesheet" href="/users-info-pg/styleguide.css" />
+    <link rel="stylesheet" href="/templates/css/header-footer.css" />
+    <link rel="stylesheet" href="/templates/css/custom-modal.css" />
+    <link rel="stylesheet" href="/users-info-pg/style.css" />
+  </head>
+  <body>
+    <div class="screen">
+      <main class="dashboard">
+        <h1 class="page-title">Профиль пользователя</h1>
+        <section class="profile-page">
+        <section class="profile-header">
+          <div class="profile-main-info">
+            <div class="profile-main-top">
+              <div class="profile-avatar">
+                <span class="profile-avatar-initial">P</span>
+              </div>
+              <div class="profile-main-text">
+                <h1 id="profile-full-name">Профиль пользователя</h1>
+                <div class="profile-login" id="profile-username"></div>
+              </div>
+            </div>
+            <div class="profile-meta">
+              <span id="profile-department"></span>
+              <span id="profile-position"></span>
+            </div>
+          </div>
+          <div class="profile-summary" id="profile-summary">
+            <!-- summary cards -->
+          </div>
+        </section>
+
+        <section class="profile-layout">
+          <div class="accordion">
+            <h2>Категории, курсы и уроки</h2>
+            <p id="profile-structure-empty" class="tests-empty">Данные о прогрессе пока отсутствуют.</p>
+            <div id="categories-accordion"></div>
+          </div>
+          <div class="tests-card">
+            <h2>Тесты</h2>
+            <div id="tests-summary"></div>
+          </div>
+        </section>
+        </section>
+      </main>
+    </div>
+
+    <script>
+      const API_BASE = '/api';
+      const role = document.body.getAttribute('data-role') || 'user';
+      let __expandedCats = new Set();
+      let __expandedCourses = new Set();
+      let __lastProgressList = [];
+      let __tree = null;
+      let __treeSig = '';
+
+      function normalizeCategoryTitle(title) {
+        const t = (title || '').trim();
+        return t ? t : 'Категория удалена/не найдена';
+      }
+
+      function buildProgressSignature(progressList) {
+        return (progressList || [])
+          .map((c) => [
+            c.course_id || c.id || '',
+            (c.category_title || '').trim(),
+            (c.course_title || c.title || '').trim(),
+            Number(c.total_lessons) || 0,
+            Number(c.lessons_completed) || 0,
+            c.is_completed ? 1 : 0,
+          ].join('|'))
+          .join('~~');
+      }
+
+      function fmtLessons(done, total) {
+        const d = Number(done) || 0;
+        const t = Number(total) || 0;
+        if (t > 0) return `${d}/${t}`;
+        if (d > 0) return `${d}/—`;
+        return '—';
+      }
+
+      function updateTreeVisibility() {
+        if (!__tree) return;
+        const { tbody, catRows } = __tree;
+
+        for (const row of catRows) {
+          const catKey = row.dataset.catKey || '';
+          const isOpen = __expandedCats.has(catKey);
+          const icon = row.querySelector('.tree-icon');
+          if (icon) icon.textContent = isOpen ? '▾' : '▸';
+        }
+
+        const rows = tbody.querySelectorAll('tr');
+        for (const tr of rows) {
+          const type = tr.dataset.type;
+          if (type === 'course') {
+            const catKey = tr.dataset.catKey || '';
+            const show = __expandedCats.has(catKey);
+            tr.classList.toggle('tree-hidden', !show);
+            const courseId = tr.dataset.courseId || '';
+            const icon = tr.querySelector('.tree-icon');
+            if (icon) icon.textContent = __expandedCourses.has(courseId) ? '▾' : '▸';
+          } else if (type === 'detail') {
+            const catKey = tr.dataset.catKey || '';
+            const courseId = tr.dataset.courseId || '';
+            const show = __expandedCats.has(catKey) && __expandedCourses.has(courseId);
+            tr.classList.toggle('tree-hidden', !show);
+          }
+        }
+      }
+
+      function fmtPct(p) {
+        const n = Number(p);
+        if (Number.isFinite(n)) return Math.max(0, Math.min(100, Math.round(n))) + '%';
+        return '—';
+      }
+
+      function groupByCategoryFromCourses(courses) {
+        const map = new Map();
+        courses.forEach((course) => {
+          const catTitle = course.category_title || 'Без категории';
+          if (!map.has(catTitle)) {
+            map.set(catTitle, []);
+          }
+          map.get(catTitle).push(course);
+        });
+        return map;
+      }
+
+      function buildSummary(summary, progressList) {
+        const container = document.getElementById('profile-summary');
+        container.innerHTML = '';
+        const cards = [
+          {
+            title: 'Курсов завершено',
+            value: summary.completed_courses ?? 0,
+            sub: `из ${summary.total_courses ?? 0}`,
+          },
+          {
+            title: 'Уроков пройдено',
+            value: summary.total_lessons_completed ?? 0,
+            sub: 'по всем курсам',
+          },
+          {
+            title: 'Средний прогресс',
+            value: `${summary.average_progress ?? 0}%`,
+            sub: 'по всем курсам',
+          },
+        ];
+        cards.forEach((c) => {
+          const cardEl = document.createElement('div');
+          cardEl.className = 'profile-summary-card';
+          cardEl.innerHTML = `
+            <h3>${c.title}</h3>
+            <div class="value">${c.value}</div>
+            <div class="sub">${c.sub}</div>
+          `;
+          container.appendChild(cardEl);
+        });
+      }
+
+      function renderStructure(progressList) {
+        const emptyEl = document.getElementById('profile-structure-empty');
+        const container = document.getElementById('categories-accordion');
+        if (!progressList || progressList.length === 0) {
+          container.innerHTML = '';
+          emptyEl.style.display = 'block';
+          return;
+        }
+        emptyEl.style.display = 'none';
+        __lastProgressList = progressList;
+        const sig = buildProgressSignature(progressList);
+        if (__tree && __treeSig === sig) {
+          updateTreeVisibility();
+          return;
+        }
+        __treeSig = sig;
+        container.innerHTML = '';
+
+        const groupedRaw = groupByCategoryFromCourses(progressList);
+        const grouped = new Map();
+        groupedRaw.forEach((courses, catTitle) => {
+          grouped.set(normalizeCategoryTitle(catTitle), courses);
+        });
+
+        const wrap = document.createElement('div');
+        wrap.className = 'table-wrap scroll';
+        const table = document.createElement('table');
+        table.className = 'profile-table tree-table';
+        table.innerHTML = `
+          <thead>
+            <tr>
+              <th style="width:46%;">Раздел</th>
+              <th style="width:18%;">Прогресс</th>
+              <th style="width:18%;">Статус</th>
+              <th style="width:18%;">Уроки</th>
+            </tr>
+          </thead>
+          <tbody></tbody>
+        `;
+        const tbody = table.querySelector('tbody');
+
+        function closeCategory(catKey) {
+          __expandedCats.delete(catKey);
+          grouped.get(catKey)?.forEach((c) => {
+            const id = String(c.course_id || c.id || '');
+            if (id) __expandedCourses.delete(id);
+          });
+        }
+
+        function fmtDate(iso) {
+          if (!iso) return '—';
+          const d = new Date(iso);
+          if (Number.isNaN(d.getTime())) return '—';
+          return d.toLocaleString('ru-RU');
+        }
+
+        const catRows = [];
+
+        grouped.forEach((courses, catTitle) => {
+          const catKey = catTitle;
+          const totalLessons = courses.reduce((s, c) => s + (Number(c.total_lessons) || 0), 0);
+          const lessonsDone = courses.reduce((s, c) => s + (Number(c.lessons_completed) || 0), 0);
+          const catPct = totalLessons ? Math.round((lessonsDone / totalLessons) * 100) : 0;
+          const completedCourses = courses.filter((c) => c.is_completed).length;
+
+          const trCat = document.createElement('tr');
+          trCat.className = 'tree-row tree-row-cat';
+          trCat.dataset.type = 'cat';
+          trCat.dataset.catKey = catKey;
+          trCat.innerHTML = `
+            <td class="tree-cell">
+              <button class="tree-toggle" type="button" aria-label="Развернуть категорию">
+                <span class="tree-icon">${__expandedCats.has(catKey) ? '▾' : '▸'}</span>
+              </button>
+              <strong>${catTitle}</strong>
+            </td>
+            <td><span class="badge neutral">${fmtPct(catPct)}</span></td>
+            <td class="is-num">${completedCourses}/${courses.length}</td>
+            <td class="is-num">${fmtLessons(lessonsDone, totalLessons)}</td>
+          `;
+          tbody.appendChild(trCat);
+          catRows.push(trCat);
+
+          courses.forEach((course) => {
+            const courseId = course.course_id || course.id;
+            const courseKey = String(courseId || '');
+            const cTotal = Number(course.total_lessons) || 0;
+            const cDone = Number(course.lessons_completed) || 0;
+            const cPctRaw = (course.progress_percentage ?? (cTotal ? Math.round((cDone / cTotal) * 100) : 0));
+            const cPct = Number.isFinite(Number(cPctRaw)) ? Number(cPctRaw) : 0;
+
+            const trCourse = document.createElement('tr');
+            trCourse.className = 'tree-row tree-row-course';
+            trCourse.dataset.type = 'course';
+            trCourse.dataset.catKey = catKey;
+            trCourse.dataset.courseId = courseKey;
+            trCourse.innerHTML = `
+              <td class="tree-cell tree-indent-1">
+                <button class="tree-toggle" type="button" aria-label="Развернуть курс">
+                  <span class="tree-icon">${__expandedCourses.has(courseKey) ? '▾' : '▸'}</span>
+                </button>
+                <strong>${course.course_title || course.title || 'Курс'}</strong>
+              </td>
+              <td><span class="badge ${course.is_completed ? 'ok' : 'neutral'}">${fmtPct(cPct)}</span></td>
+              <td>${course.is_completed ? '<span class="badge ok">завершён</span>' : '<span class="badge neutral">в процессе</span>'}</td>
+              <td class="is-num">${fmtLessons(cDone, cTotal)}</td>
+            `;
+            tbody.appendChild(trCourse);
+
+            const desc = (course.course_description || course.description || '').trim();
+            const startedAt = course.started_at || course.startedAt;
+            const completedAt = course.completed_at || course.completedAt;
+
+            const trDetail = document.createElement('tr');
+            trDetail.className = 'tree-row tree-row-detail';
+            trDetail.dataset.type = 'detail';
+            trDetail.dataset.catKey = catKey;
+            trDetail.dataset.courseId = courseKey;
+            trDetail.innerHTML = `
+              <td colspan="4" class="tree-detail">
+                <div class="tree-detail-grid">
+                  <div>
+                    <div class="tree-detail-title">О курсе</div>
+                    <div class="tree-detail-text">${desc ? desc.replace(/</g, '&lt;').replace(/>/g, '&gt;') : '<span class="is-muted">Описание отсутствует.</span>'}</div>
+                  </div>
+                  <div>
+                    <div class="tree-detail-title">Даты</div>
+                    <div class="tree-detail-text">
+                      <div><span class="is-muted">Начат:</span> <span class="is-num">${fmtDate(startedAt)}</span></div>
+                      <div><span class="is-muted">Завершён:</span> <span class="is-num">${fmtDate(completedAt)}</span></div>
+                    </div>
+                  </div>
+                </div>
+              </td>
+            `;
+            tbody.appendChild(trDetail);
+          });
+        });
+
+        tbody.addEventListener('click', (e) => {
+          const target = e.target;
+          if (!(target instanceof Element)) return;
+          const tr = target.closest('tr');
+          if (!tr) return;
+          const type = tr.dataset.type;
+          const catKey = tr.dataset.catKey || '';
+
+          if (type === 'cat') {
+            if (__expandedCats.has(catKey)) closeCategory(catKey);
+            else __expandedCats.add(catKey);
+            updateTreeVisibility();
+            return;
+          }
+          if (type === 'course') {
+            const courseId = tr.dataset.courseId || '';
+            if (!courseId) return;
+            if (__expandedCourses.has(courseId)) __expandedCourses.delete(courseId);
+            else __expandedCourses.add(courseId);
+            updateTreeVisibility();
+            return;
+          }
+        });
+
+        wrap.appendChild(table);
+        container.appendChild(wrap);
+        __tree = { wrap, table, tbody, catRows };
+        updateTreeVisibility();
+      }
+
+      function buildTestsSummary(summary, progressList, tests) {
+        const container = document.getElementById('tests-summary');
+        container.innerHTML = '';
+        const list = Array.isArray(tests) ? tests : [];
+
+        // Раньше показывались только последние 10 — из‑за этого терялась информация.
+        // Теперь отображаем все попытки, отсортированные по дате (от новых к старым).
+        const withDates = list
+          .map((t) => ({ t, d: t.last_result && t.last_result.created_at ? Date.parse(t.last_result.created_at) : 0 }))
+          .filter((x) => x.d > 0)
+          .sort((a, b) => b.d - a.d);
+
+        const title = document.createElement('div');
+        title.className = 'tests-list-title';
+        title.textContent = 'Все результаты тестов';
+        container.appendChild(title);
+
+        if (!withDates.length) {
+          const p = document.createElement('div');
+          p.style.color = '#6b7280';
+          p.style.fontSize = '15px';
+          p.textContent = 'Пока нет попыток прохождения тестов.';
+          container.appendChild(p);
+          return;
+        }
+
+        const wrap = document.createElement('div');
+        wrap.className = 'table-wrap scroll';
+
+        const table = document.createElement('table');
+        table.className = 'profile-table tests-list';
+        table.innerHTML = `
+          <thead>
+            <tr>
+              <th>Тест</th>
+              <th>Тип</th>
+              <th>Результат</th>
+              <th>Баллы</th>
+              <th>Дата</th>
+            </tr>
+          </thead>
+          <tbody></tbody>
+        `;
+        const tbody = table.querySelector('tbody');
+        withDates.forEach(({ t }) => {
+          const lr = t.last_result;
+          const tr = document.createElement('tr');
+          const source = t.kind === 'lesson'
+            ? [t.source?.category_title, t.source?.course_title, t.source?.lesson_title].filter(Boolean).join(' / ')
+            : 'Глобальный тест';
+          const badge = lr.passed ? '<span class="badge ok">Пройден</span>' : '<span class="badge bad">Провален</span>';
+          const balls = (lr.score != null && lr.total != null) ? `${lr.score} из ${lr.total} (${lr.score_percent ?? 0}%)` : '—';
+          const dateStr = lr.created_at ? new Date(lr.created_at).toLocaleString('ru-RU') : '—';
+          tr.innerHTML = `
+            <td><strong>${t.title || 'Тест'}</strong><div style="font-size:12px;color:#6b7280;">${source}</div></td>
+            <td>${t.kind === 'lesson' ? 'урочный' : 'глобальный'}</td>
+            <td>${badge}</td>
+            <td class="is-num">${balls}</td>
+            <td class="is-num">${dateStr}</td>
+          `;
+          tbody.appendChild(tr);
+        });
+        wrap.appendChild(table);
+        container.appendChild(wrap);
+      }
+
+      async function loadProfile() {
+        const params = new URLSearchParams(window.location.search);
+        const userId = params.get('user_id');
+        let data = null;
+        let testsData = null;
+
+        try {
+          if (userId && (role === 'admin' || role === 'super_admin')) {
+            const [progressRes, testsRes] = await Promise.all([
+              fetch(`${API_BASE}/users/${encodeURIComponent(userId)}/progress`),
+              fetch(`${API_BASE}/tests?user_id=${encodeURIComponent(userId)}`),
+            ]);
+            data = await progressRes.json();
+            testsData = await testsRes.json().catch(() => ({}));
+            if (!progressRes.ok) throw new Error(data.error || 'Ошибка загрузки профиля пользователя');
+          } else {
+            const [meRes, testsRes] = await Promise.all([
+              fetch(`${API_BASE}/current-user`),
+              fetch(`${API_BASE}/tests`),
+            ]);
+            data = await meRes.json();
+            testsData = await testsRes.json().catch(() => ({}));
+            if (!meRes.ok) throw new Error(data.error || 'Ошибка загрузки профиля пользователя');
+            const progress = (data.course_progress || []).map((cp) => ({
+              course_id: cp.course_id || cp.id,
+              course_title: cp.title || cp.course_title,
+              category_title: cp.category_title,
+              course_description: cp.course_description || cp.description,
+              total_lessons: cp.total_lessons || 0,
+              lessons_completed: cp.lessons_completed || 0,
+              progress_percentage: cp.progress_percentage ?? (cp.total_lessons ? Math.round((cp.lessons_completed || 0) / cp.total_lessons * 100) : 0),
+              is_completed: cp.is_completed,
+              started_at: cp.started_at,
+              completed_at: cp.completed_at,
+            }));
+            const total = progress.length;
+            const completed = progress.filter((p) => p.is_completed).length;
+            const lessonsDone = progress.reduce((s, p) => s + (p.lessons_completed || 0), 0);
+            data = {
+              username: data.username,
+              full_name: data.full_name,
+              department: data.department,
+              position: data.position,
+              progress,
+              summary: {
+                total_courses: total,
+                completed_courses: completed,
+                total_lessons_completed: lessonsDone,
+                average_progress: total ? Math.round(progress.reduce((s, p) => s + p.progress_percentage, 0) / total) : 0,
+              },
+            };
+          }
+        } catch (e) {
+          console.error(e);
+          document.getElementById('profile-full-name').textContent = 'Ошибка загрузки профиля';
+          document.getElementById('profile-username').textContent = '';
+          return;
+        }
+
+        const fullName = data.full_name || data.username || 'Пользователь';
+        document.getElementById('profile-full-name').textContent = fullName;
+        document.getElementById('profile-username').textContent = data.username ? '@' + data.username : '';
+        document.getElementById('profile-department').textContent = data.department ? 'Отдел: ' + data.department : '';
+        document.getElementById('profile-position').textContent = data.position ? 'Должность: ' + data.position : '';
+
+        const avatarInitialEl = document.querySelector('.profile-avatar-initial');
+        if (avatarInitialEl && fullName) {
+          avatarInitialEl.textContent = fullName.trim().charAt(0).toUpperCase();
+        }
+
+        const summary = data.summary || {
+          total_courses: 0,
+          completed_courses: 0,
+          total_lessons_completed: 0,
+          average_progress: 0,
+        };
+        const progressList = data.progress || [];
+        buildSummary(summary, progressList);
+        renderStructure(progressList);
+        buildTestsSummary(summary, progressList, (testsData && testsData.tests) ? testsData.tests : []);
+      }
+
+      document.addEventListener('DOMContentLoaded', loadProfile);
+    </script>
+    <script src="/templates/js/custom-modal.js"></script>
+  </body>
+</html>
+

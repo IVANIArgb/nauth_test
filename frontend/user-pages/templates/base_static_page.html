@@ -1,0 +1,26 @@
+<!DOCTYPE html>
+<html lang="ru">
+  <head>
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta charset="utf-8" />
+    <title>{{ title or 'LearnSite' }}</title>
+    <link rel="stylesheet" href="/templates/css/header-footer.css" />
+    <link rel="stylesheet" href="/templates/css/override-fonts.css" />
+    <link rel="stylesheet" href="/templates/css/nav-badges.css" />
+    {% for href in page_styles %}
+      <link rel="stylesheet" href="{{ href }}" />
+    {% endfor %}
+  </head>
+  <body data-role="{{ role or 'user' }}">
+    <div class="screen">
+      {% include 'frontend/shared-pages/templates/partials/header.html' %}
+      {{ page_body | safe }}
+      {% include 'frontend/user-pages/templates/partials/footer.html' %}
+    </div>
+    <script src="/templates/js/header-badges.js"></script>
+    <script src="/templates/js/news-modal.js"></script>
+    <script src="/templates/js/custom-modal.js"></script>
+    <script src="/templates/js/first-visit-profile.js"></script>
+  </body>
+</html>
+

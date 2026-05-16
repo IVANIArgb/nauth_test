@@ -1,0 +1,160 @@
+<!DOCTYPE html>
+<html lang="ru">
+  <head>
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta charset="utf-8" />
+    <title>LearnSite - Тесты</title>
+    <link rel="stylesheet" href="/users-info-pg/globals.css" />
+    <link rel="stylesheet" href="/users-info-pg/styleguide.css" />
+    <link rel="stylesheet" href="/templates/css/header-footer.css" />
+    <link rel="stylesheet" href="/templates/css/custom-modal.css" />
+    <link rel="stylesheet" href="/users-info-pg/style.css" />
+    <link rel="stylesheet" href="/templates/css/nav-badges.css" />
+    <link rel="stylesheet" href="/templates/css/tests-analytics.css" />
+    <link rel="stylesheet" href="/all-lessons-pg/style.css" />
+    <style>
+      body, .screen, .dashboard, .users-table-section, .filters-section, .statistics-overview, .stat-card { background: #ffffff !important; }
+
+      /* Вкладки */
+      /* ВАЖНО: стили вкладок/панелей вынесены в /templates/css/tests-analytics.css */
+
+      .tests-subtitle { font-size: 1.1rem; margin: 0 0 0.5rem; color: #4f4f4f; }
+      .tests-sort-label { display: inline-flex; align-items: center; gap: 0.4rem; }
+      .tests-sort-select { min-width: 140px; }
+
+      /* Таблицы тестов: убираем старый синий header, делаем как в профиле */
+      .users-table.tests-table {
+        border-radius: 14px;
+        overflow: hidden;
+        margin-top: 0.75rem;
+      }
+      .users-table.tests-table th {
+        background: #f9fafb;
+        color: #334155;
+        font-weight: 600;
+        border-bottom: 1px solid #e2e8f0;
+      }
+      .users-table.tests-table td {
+        font-size: 14px;
+      }
+      .users-table.tests-table tbody tr:hover td {
+        background: #f8fafc;
+      }
+      .users-table.tests-table .loading {
+        padding: 1.25rem;
+        font-style: italic;
+        color: #6b7280;
+        text-align: center;
+      }
+      .users-table.tests-table td:last-child {
+        text-align: right;
+      }
+
+      /* Модалка глобального теста — без горизонтальной прокрутки, аккуратный UI */
+      .gt-modal-overlay { padding: 1.5rem; }
+      .gt-modal-wrap .modal-container { max-width: 100%; box-sizing: border-box; overflow: hidden; display: flex; flex-direction: column; max-height: calc(90vh - 2rem); }
+      .gt-modal-wrap .modal-body { overflow-y: auto; overflow-x: hidden; min-height: 0; padding: 1.5rem 2rem; }
+      .gt-modal-wrap .modal-footer { flex-shrink: 0; padding: 1rem 2rem; gap: 0.75rem; }
+      .gt-test-edit-content .form-input,
+      .gt-test-edit-content .form-textarea { max-width: 100%; box-sizing: border-box; }
+      .gt-test-edit-content .test-questions-layout { min-height: 0; }
+      .gt-test-edit-content .test-questions-list { min-height: 200px; }
+    </style>
+  </head>
+  <body>
+    <div class="screen">
+      <main class="dashboard">
+        <h1 class="page-title">Тесты</h1>
+
+        <section class="filters-section">
+          <div class="filters-container">
+            <select id="department-filter" class="filter-select">
+              <option value="">Все отделы</option>
+            </select>
+            <input
+              type="text"
+              id="search-input"
+              class="search-input"
+              placeholder="Поиск по тесту, курсу или пользователю..."
+            />
+            <label class="tests-sort-label">
+              Сортировка:
+              <select id="sort-by" class="filter-select tests-sort-select">
+                <option value="title">по названию</option>
+                <option value="category">по категории</option>
+                <option value="course">по курсу</option>
+                <option value="date">по дате</option>
+              </select>
+            </label>
+            <button id="refresh-btn" class="refresh-button">Обновить</button>
+          </div>
+        </section>
+
+        <section class="statistics-overview">
+          <div class="stats-grid">
+            <div class="stat-card">
+              <h3>Всего тестов</h3>
+              <span id="total-tests" class="stat-number">-</span>
+            </div>
+            <div class="stat-card">
+              <h3>Тестов пройдено</h3>
+              <span id="completed-tests" class="stat-number">-</span>
+            </div>
+            <div class="stat-card">
+              <h3>Пользователей прошли все тесты</h3>
+              <span id="full-complete-users" class="stat-number">-</span>
+            </div>
+          </div>
+        </section>
+
+        <section class="users-table-section">
+          <div class="tests-tabs">
+            <button type="button" class="tests-tab active" data-tab="lesson" id="tab-lesson">Урочные</button>
+            <button type="button" class="tests-tab" data-tab="global" id="tab-global">Глобальные</button>
+          </div>
+          <div class="tests-panel active" id="panel-lesson">
+            <div class="table-container">
+              <table class="users-table tests-table">
+                <thead>
+                  <tr>
+                    <th>Тест</th>
+                    <th>Источник</th>
+                    <th>Результат</th>
+                    <th>Баллы</th>
+                    <th>Действия</th>
+                  </tr>
+                </thead>
+                <tbody id="lesson-tests-body">
+                  <tr><td colspan="5" class="loading">Загрузка...</td></tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+          <div class="tests-panel" id="panel-global">
+            <div class="table-container">
+              <table class="users-table tests-table">
+                <thead>
+                  <tr>
+                    <th>Тест</th>
+                    <th>Источник</th>
+                    <th>Результат</th>
+                    <th>Баллы</th>
+                    <th>Действия</th>
+                  </tr>
+                </thead>
+                <tbody id="global-tests-body">
+                  <tr><td colspan="5" class="loading">Загрузка...</td></tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </section>
+      </main>
+    </div>
+
+    <script src="/templates/js/header-badges.js"></script>
+    <script src="/templates/js/news-modal.js"></script>
+    <script src="/templates/js/custom-modal.js"></script>
+    <script src="/templates/js/tests-analytics.js"></script>
+  </body>
+</html>

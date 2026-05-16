@@ -1,0 +1,487 @@
+<!DOCTYPE html>
+<html lang="ru">
+  <head>
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta charset="utf-8" />
+    <title>LearnSite - Вопросы</title>
+    <link rel="stylesheet" href="/questions-pg/globals.css" />
+    <link rel="stylesheet" href="/questions-pg/styleguide.css" />
+    <link rel="stylesheet" href="/templates/css/header-footer.css" />
+    <link rel="stylesheet" href="/questions-pg/style.css" />
+  </head>
+  <body>
+    <div class="screen">
+
+      <main class="main-content">
+        <nav class="breadcrumbs" id="question-breadcrumbs"></nav>
+        <h1 class="page-title">Вопросы</h1>
+        <div id="back-to-lesson-btn" style="display: none; margin-bottom: 1rem;">
+          <button onclick="goBackToLesson()" class="btn-back-to-lesson">← Вернуться к уроку</button>
+        </div>
+        <div class="qa-topbar" role="region" aria-label="Управление вопросами">
+          <button class="add-question-btn" id="create-question-btn" type="button">
+            <span class="add-text">Создать вопрос</span>
+          </button>
+          <div class="qa-toolbar">
+            <div class="pill-filter" role="tablist" aria-label="Фильтр вопросов">
+              <button class="pill active" data-filter="all" type="button" role="tab" aria-selected="true">Все</button>
+              <button class="pill" data-filter="unanswered" type="button" role="tab" aria-selected="false">Без ответа</button>
+              <button class="pill" data-filter="resolved" type="button" role="tab" aria-selected="false">С ответом</button>
+            </div>
+            <label class="search" aria-label="Поиск по вопросам">
+              <span class="search-icon" aria-hidden="true">⌕</span>
+              <input class="search-input" type="search" placeholder="Поиск по заголовку или описанию..." />
+            </label>
+            <label class="dept" aria-label="Фильтр по отделу">
+              <input class="dept-input" type="search" placeholder="Отдел..." />
+            </label>
+          </div>
+        </div>
+        <div class="tabs">
+          <button class="tab active" data-tab="all">Все вопросы</button>
+          <button class="tab" data-tab="mine">Мои вопросы</button>
+        </div>
+
+        <section id="tab-all" class="courses-grid"></section>
+        <section id="tab-mine" class="courses-grid" style="display:none;"></section>
+      </main>
+    </div>
+    <div id="create-question-modal" class="modal-overlay" style="display: none;"></div>
+  <script>
+    (function () {
+      function el(tag, cls){ var n=document.createElement(tag); if(cls) n.className=cls; return n; }
+      function autoResize(el){
+        if (!el) return;
+        // Делаем автоподгонку высоты textarea по содержимому.
+        el.style.height = 'auto';
+        el.style.height = el.scrollHeight + 'px';
+      }
+
+      var state = { filter: 'all', search: '', department: '' };
+
+      var tabs = document.querySelectorAll('.tab');
+      function setTab(name){
+        tabs.forEach(function(t){ t.classList.toggle('active', t.dataset.tab===name); });
+        document.getElementById('tab-all').style.display = name==='all' ? '' : 'none';
+        document.getElementById('tab-mine').style.display = name==='mine' ? '' : 'none';
+      }
+      tabs.forEach(function(t){ t.addEventListener('click', function(){ setTab(t.dataset.tab); }); });
+
+      function renderQuestionCard(q){
+        var card = el('article','course-card qa-card');
+        var content = el('div','card-content'); card.appendChild(content);
+
+        var header = el('div','card-header qa-card__header');
+        var title = el('h3','card-title qa-card__title');
+        title.textContent = q.title || 'Без названия';
+        header.appendChild(title);
+        content.appendChild(header);
+
+        var main = el('div','card-main qa-card__body');
+        var p = el('p','content-p qa-card__text');
+        p.textContent = (q.body || '').trim() || 'Описание не указано.';
+        main.appendChild(p);
+        content.appendChild(main);
+
+        if (q.attachments && q.attachments.length) {
+          var qFiles = el('div','attached-files question-files');
+          q.attachments.forEach(function(att){
+            var chip = el('div','attached-file-chip');
+            var link = el('a');
+            link.href = '/api/questions/attachments/' + att.id + '/download';
+            link.textContent = att.original_filename || att.stored_filename;
+            link.download = att.original_filename || att.stored_filename;
+            chip.appendChild(link);
+            qFiles.appendChild(chip);
+          });
+          content.appendChild(qFiles);
+        }
+
+        if (q.tags && q.tags.length){
+          var tagsC = el('div','tags-container');
+          var lbl = el('span','tags-label'); lbl.textContent='Теги:';
+          var list = el('div','tags-list');
+          q.tags.forEach(function(t){
+            var b = el('button','tag tag-clickable');
+            b.type = 'button';
+            b.textContent = t;
+            b.addEventListener('click', function (e) {
+              e.preventDefault();
+              handleTagNavigation(String(t || ''), q.tags || []);
+            });
+            list.appendChild(b);
+          });
+          tagsC.appendChild(lbl); tagsC.appendChild(list);
+          content.appendChild(tagsC);
+        }
+
+        var authorLine = el('div','qa-card__meta');
+        var authorName = (q.author_full_name || q.author_username || 'Пользователь');
+        var dept = q.author_department || '';
+        authorLine.textContent = dept ? (authorName + ' · ' + dept) : authorName;
+        content.appendChild(authorLine);
+
+        var answersList = el('div','answers-list');
+        content.appendChild(answersList);
+
+        function renderAnswers(answers){
+          answersList.innerHTML='';
+          (answers||[]).forEach(function(a){
+            var item = el('div','answer-item');
+            var t = el('div','answer-text');
+            t.textContent = (a.author_full_name||a.author_username||'Администратор')+': '+a.body;
+            item.appendChild(t);
+            (a.attachments||[]).forEach(function(att){
+              var chip = el('div','attached-file-chip');
+              var link = el('a'); link.href = att.url; link.textContent = att.original_filename; link.download = att.original_filename; chip.appendChild(link);
+              item.appendChild(chip);
+            });
+            answersList.appendChild(item);
+          });
+        }
+        // Ответы теперь приходят вместе с вопросами из API (include_relations=True)
+        renderAnswers(q.answers || []);
+        return card;
+      }
+
+      function buildParams(mine){
+        var params = new URLSearchParams();
+        if (state.search) params.set('search', state.search);
+        if (state.department) params.set('department', state.department);
+        if (mine) params.set('mine', 'true');
+        else {
+          if (state.filter==='unanswered') params.set('resolved','false');
+          if (state.filter==='resolved') params.set('resolved','true');
+        }
+        return params;
+      }
+
+      function loadAll(){
+        return fetch('/api/questions?'+buildParams(false).toString()).then(r=>r.json()).then(function(d){ var list=document.getElementById('tab-all'); list.innerHTML=''; (d.questions||[]).forEach(function(q){ list.appendChild(renderQuestionCard(q)); }); });
+      }
+      function loadMine(){
+        return fetch('/api/current-user').then(r=>r.json()).then(function(u){ if(!u || !u.id){ return; } return fetch('/api/questions?'+buildParams(true).toString()).then(r=>r.json()).then(function(d){ var list=document.getElementById('tab-mine'); list.innerHTML=''; (d.questions||[]).forEach(function(q){ list.appendChild(renderQuestionCard(q)); }); }); });
+      }
+
+      document.querySelector('.search-input').addEventListener('input', function(e){ state.search = e.target.value.trim(); loadAll(); loadMine(); });
+      var deptInput = document.querySelector('.dept-input');
+      if (deptInput) deptInput.addEventListener('input', function(e){ state.department = e.target.value.trim(); loadAll(); loadMine(); });
+      document.querySelectorAll('.pill').forEach(function(btn){ btn.addEventListener('click', function(){ document.querySelectorAll('.pill').forEach(function(b){ b.classList.remove('active'); }); btn.classList.add('active'); state.filter = btn.dataset.filter; loadAll(); loadMine(); }); });
+
+      var createModal = document.getElementById('create-question-modal');
+
+      function openCreateQuestionModal(prefill){
+        if (!createModal.innerHTML.trim()) {
+          createModal.innerHTML = '<div class="modal-container"><div class="modal-header"><h2 class="modal-title">Создать вопрос</h2><button class="modal-close" onclick="closeCreateQuestionModal()" aria-label="Закрыть"><svg width="24" height="24" viewBox="0 0 24 24" fill="none"><path d="M18 6L6 18M6 6L18 18" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></button></div><div class="modal-body"><form id="create-question-form"><div class="form-group"><label for="q-modal-title" class="form-label">Заголовок <span class="required">*</span></label><input type="text" id="q-modal-title" class="form-input" placeholder="Кратко опишите вопрос" required /></div><div class="form-group"><label for="q-modal-body" class="form-label">Описание</label><textarea id="q-modal-body" class="form-textarea" rows="4" placeholder="Подробное описание вопроса"></textarea></div><div class="form-group"><label for="q-modal-tags" class="form-label">Теги (через запятую)</label><input type="text" id="q-modal-tags" class="form-input" placeholder="тег1, тег2, тег3" /></div><div class="form-group"><label class="form-label">Прикрепить файлы</label><div class="file-upload-row"><input type="file" id="q-modal-file" class="file-input-hidden" multiple /><button type="button" class="file-upload-btn" aria-label="Прикрепить файл"></button></div><div id="q-modal-files" class="attached-files"></div></div></form></div><div class="modal-footer"><button type="button" class="btn-cancel" onclick="closeCreateQuestionModal()">Отмена</button><button type="button" class="btn-submit" id="q-modal-send">Создать</button></div></div>';
+          createModal.addEventListener('click', function(e){ if (e.target === createModal) closeCreateQuestionModal(); });
+          var fileInp = document.getElementById('q-modal-file');
+          var uploadBtn = createModal.querySelector('.file-upload-btn');
+          if (uploadBtn) uploadBtn.addEventListener('click', function(){ fileInp.click(); });
+          fileInp.addEventListener('change', function(){
+            var queue = fileInp._queue || [];
+            Array.prototype.forEach.call(fileInp.files, function(f){ queue.push({ file: f, displayName: f.name }); });
+            fileInp._queue = queue;
+            var prev = document.getElementById('q-modal-files');
+            prev.innerHTML = '';
+            queue.forEach(function(item, i){
+              var row = document.createElement('div'); row.className = 'file-upload-row-item';
+              var lab = document.createElement('label'); lab.className = 'file-upload-name-label'; lab.textContent = item.file.name;
+              var inp = document.createElement('input'); inp.type = 'text'; inp.className = 'form-input file-display-name'; inp.placeholder = 'Имя для скачивания'; inp.value = item.displayName || item.file.name; inp.dataset.index = String(i);
+              inp.addEventListener('input', function(){ queue[i].displayName = inp.value.trim() || item.file.name; });
+              row.appendChild(lab); row.appendChild(inp); prev.appendChild(row);
+            });
+            fileInp.value = '';
+          });
+          document.getElementById('q-modal-send').addEventListener('click', submitCreateQuestion);
+        }
+        if (prefill) {
+          var ti = document.getElementById('q-modal-title');
+          var tg = document.getElementById('q-modal-tags');
+          var body = document.getElementById('q-modal-body');
+          var fi = document.getElementById('q-modal-file');
+          if (ti && prefill.title) ti.value = prefill.title;
+          if (tg && prefill.tags) tg.value = prefill.tags;
+          if (body && prefill.body) body.value = prefill.body;
+          if (fi) { fi.value = ''; fi._queue = []; }
+          var pf = document.getElementById('q-modal-files');
+          if (pf) pf.innerHTML = '';
+        } else {
+          var ti = document.getElementById('q-modal-title');
+          var tg = document.getElementById('q-modal-tags');
+          var body = document.getElementById('q-modal-body');
+          var fi = document.getElementById('q-modal-file');
+          if (ti) ti.value = '';
+          if (tg) tg.value = '';
+          if (body) body.value = '';
+          if (fi) { fi.value = ''; fi._queue = []; }
+          var pf = document.getElementById('q-modal-files');
+          if (pf) pf.innerHTML = '';
+        }
+        // Авто-растяжка textarea в модалке создания вопроса.
+        if (body) {
+          autoResize(body);
+          if (!body.dataset.autosizeBound) {
+            body.dataset.autosizeBound = '1';
+            body.addEventListener('input', function () { autoResize(body); });
+          }
+        }
+        var sendBtn = document.getElementById('q-modal-send');
+        if (sendBtn) { sendBtn.disabled = false; sendBtn.textContent = 'Создать'; }
+        createModal.style.display = 'flex';
+      }
+
+      function closeCreateQuestionModal(){
+        createModal.style.display = 'none';
+      }
+
+      function submitCreateQuestion(){
+        var btn = document.getElementById('q-modal-send');
+        if (btn && btn.disabled) return;
+        var ti = document.getElementById('q-modal-title');
+        var body = document.getElementById('q-modal-body');
+        var tg = document.getElementById('q-modal-tags');
+        var fileInp = document.getElementById('q-modal-file');
+        var title = (ti && ti.value || '').trim();
+        if (!title){ alert('Введите заголовок вопроса'); return; }
+        var bodyVal = (body && body.value || '').trim();
+        var tags = (tg && tg.value || '').split(',').map(function(t){return t.trim();}).filter(Boolean);
+        var queue = (fileInp && fileInp._queue) || [];
+        if (btn) { btn.disabled = true; btn.textContent = 'Отправка...'; }
+        fetch('/api/questions', {method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({title: title, body: bodyVal, tags: tags})})
+          .then(function(r){
+            if (!r.ok) return r.json().then(function(err){ throw new Error(err.error || 'Ошибка создания вопроса'); });
+            return r.json();
+          })
+          .then(function(res){
+            var q = res.question;
+            if (queue.length) {
+              var uploads = queue.map(function(item){ var fd=new FormData(); fd.append('file', item.file); fd.append('display_name', (item.displayName || item.file.name || '').trim() || item.file.name); return fetch('/api/questions/'+q.id+'/attachments', {method:'POST', body: fd}); });
+              return Promise.allSettled(uploads).then(function(results){
+                var errMsg = null;
+                for (var i = 0; i < results.length; i++) {
+                  var r = results[i];
+                  if (r.status === 'rejected') { errMsg = r.reason && r.reason.message ? r.reason.message : 'Ошибка загрузки файла'; break; }
+                  if (r.status === 'fulfilled' && r.value && !r.value.ok) { errMsg = 'Файл отклонён. Допустимы: изображения, PDF, Word, Excel, архивы.'; break; }
+                }
+                if (errMsg) throw new Error(errMsg);
+                return q;
+              });
+            }
+            return q;
+          })
+          .then(function(){
+            closeCreateQuestionModal();
+            loadAll(); loadMine();
+            setTab('all');
+          })
+          .catch(function(e){ alert(e.message || 'Ошибка создания вопроса'); })
+          .finally(function(){ if (btn) { btn.disabled = false; btn.textContent = 'Создать'; } });
+      }
+
+      window.openCreateQuestionModal = openCreateQuestionModal;
+      window.closeCreateQuestionModal = closeCreateQuestionModal;
+
+      document.getElementById('create-question-btn').addEventListener('click', function(){ openCreateQuestionModal(); });
+
+      loadAll().then(loadMine);
+
+      // --- Навигация по тегам (Категория/Курс/Урок) ---
+      var _navCache = {
+        categories: null, // [{id,title}]
+        coursesByCategory: new Map(), // categoryId -> [{id,title,category_id}]
+        lessonsByCourse: new Map(), // courseId -> [{id,title,course_id}]
+      };
+
+      function _parseContextTags(tags) {
+        var ctx = { categoryTitle: null, courseTitle: null, lessonTitle: null };
+        (tags || []).forEach(function (raw) {
+          var s = String(raw || '').trim();
+          var m;
+          if ((m = s.match(/^Категория:\s*(.+)$/i))) ctx.categoryTitle = (m[1] || '').trim();
+          else if ((m = s.match(/^Курс:\s*(.+)$/i))) ctx.courseTitle = (m[1] || '').trim();
+          else if ((m = s.match(/^Урок:\s*(.+)$/i))) ctx.lessonTitle = (m[1] || '').trim();
+        });
+        return ctx;
+      }
+
+      function _fetchPaged(url, itemsKey) {
+        var all = [];
+        var page = 1;
+        var per = 100;
+        function step() {
+          var u = url + (url.indexOf('?') >= 0 ? '&' : '?') + 'page=' + page + '&per_page=' + per;
+          return fetch(u).then(function (r) { return r.json(); }).then(function (d) {
+            all = all.concat(d[itemsKey] || []);
+            var p = d.pagination || {};
+            if (p.has_next) { page += 1; return step(); }
+            return all;
+          });
+        }
+        return step();
+      }
+
+      function _getCategories() {
+        if (_navCache.categories) return Promise.resolve(_navCache.categories);
+        return _fetchPaged('/api/categories', 'categories').then(function (cats) {
+          _navCache.categories = cats || [];
+          return _navCache.categories;
+        });
+      }
+
+      function _getCourses(categoryId) {
+        if (!categoryId) return Promise.resolve([]);
+        if (_navCache.coursesByCategory.has(categoryId)) return Promise.resolve(_navCache.coursesByCategory.get(categoryId));
+        return _fetchPaged('/api/courses?category_id=' + encodeURIComponent(categoryId), 'courses').then(function (courses) {
+          var list = courses || [];
+          _navCache.coursesByCategory.set(categoryId, list);
+          return list;
+        });
+      }
+
+      function _getLessons(courseId) {
+        if (!courseId) return Promise.resolve([]);
+        if (_navCache.lessonsByCourse.has(courseId)) return Promise.resolve(_navCache.lessonsByCourse.get(courseId));
+        return _fetchPaged('/api/lessons?course_id=' + encodeURIComponent(courseId), 'lessons').then(function (lessons) {
+          var list = lessons || [];
+          _navCache.lessonsByCourse.set(courseId, list);
+          return list;
+        });
+      }
+
+      function _findByTitle(list, title) {
+        var t = String(title || '').trim().toLowerCase();
+        if (!t) return null;
+        for (var i = 0; i < (list || []).length; i++) {
+          var item = list[i];
+          var it = String((item && item.title) || '').trim().toLowerCase();
+          if (it === t) return item;
+        }
+        return null;
+      }
+
+      function handleTagNavigation(clickedTag, allTags) {
+        var click = String(clickedTag || '').trim();
+        if (!click) return;
+        var ctx = _parseContextTags(allTags);
+
+        var m;
+        var kind = null;
+        var value = null;
+        if ((m = click.match(/^Категория:\s*(.+)$/i))) { kind = 'category'; value = (m[1] || '').trim(); }
+        else if ((m = click.match(/^Курс:\s*(.+)$/i))) { kind = 'course'; value = (m[1] || '').trim(); }
+        else if ((m = click.match(/^Урок:\s*(.+)$/i))) { kind = 'lesson'; value = (m[1] || '').trim(); }
+        else { return; } // пока поддерживаем только структурированные теги
+
+        function fail(msg) { alert(msg || 'Не удалось перейти по тегу'); }
+
+        if (kind === 'category') {
+          _getCategories().then(function (cats) {
+            var cat = _findByTitle(cats, value);
+            if (!cat) return fail('Категория не найдена: ' + value);
+            window.location.href = '/all-courses-pg?category_id=' + cat.id;
+          }).catch(function () { fail('Ошибка загрузки категорий'); });
+          return;
+        }
+
+        // Для курса/урока пытаемся использовать контекст (категория->курс->урок),
+        // чтобы корректно разрешить ID и избежать коллизий одинаковых названий.
+        var categoryTitle = ctx.categoryTitle;
+        var courseTitle = (kind === 'course') ? value : (ctx.courseTitle || '');
+        var lessonTitle = (kind === 'lesson') ? value : (ctx.lessonTitle || '');
+
+        _getCategories().then(function (cats) {
+          var cat = categoryTitle ? _findByTitle(cats, categoryTitle) : null;
+          if (!cat && categoryTitle) throw new Error('CAT_NOT_FOUND');
+          return cat;
+        }).then(function (cat) {
+          // если категории нет в тегах — попробуем найти курс глобально: это дороже,
+          // но позволит клику работать хотя бы в простых случаях.
+          if (!cat) return _fetchPaged('/api/courses', 'courses').then(function (courses) {
+            var c = _findByTitle(courses, courseTitle);
+            if (!c) throw new Error('COURSE_NOT_FOUND');
+            return { course: c, category: null };
+          });
+          return _getCourses(cat.id).then(function (courses) {
+            var c = _findByTitle(courses, courseTitle);
+            if (!c) throw new Error('COURSE_NOT_FOUND');
+            return { course: c, category: cat };
+          });
+        }).then(function (res) {
+          var course = res.course;
+          if (!course) throw new Error('COURSE_NOT_FOUND');
+          if (kind === 'course') {
+            window.location.href = '/all-lessons-pg?course_id=' + course.id;
+            return;
+          }
+          return _getLessons(course.id).then(function (lessons) {
+            var l = _findByTitle(lessons, lessonTitle);
+            if (!l) throw new Error('LESSON_NOT_FOUND');
+            window.location.href = '/lessons-content-pg?lesson_id=' + l.id;
+          });
+        }).catch(function (e) {
+          var code = (e && e.message) || '';
+          if (code === 'CAT_NOT_FOUND') return fail('Категория не найдена: ' + categoryTitle);
+          if (code === 'COURSE_NOT_FOUND') return fail('Курс не найден: ' + courseTitle);
+          if (code === 'LESSON_NOT_FOUND') return fail('Урок не найден: ' + lessonTitle);
+          return fail('Ошибка навигации по тегу');
+        });
+      }
+
+      var urlParams = new URLSearchParams(window.location.search);
+      var lessonId = urlParams.get('lesson_id');
+      var tabParam = urlParams.get('tab');
+      var titleParam = urlParams.get('title');
+      var bodyParam = urlParams.get('body');
+      var tagsParam = urlParams.get('tags');
+      if (tabParam === 'ask' || urlParams.get('new') === '1') {
+        var prefill = {};
+        if (titleParam) prefill.title = decodeURIComponent(titleParam);
+        if (bodyParam) prefill.body = decodeURIComponent(bodyParam);
+        if (tagsParam) prefill.tags = decodeURIComponent(tagsParam);
+        if (lessonId && !tagsParam) {
+          fetch('/api/lessons/' + lessonId + '/course-tree').then(function(r){ return r.json(); }).then(function(tree){
+            if (tree && tree.category && tree.course && tree.lesson) {
+              if (!prefill.title) prefill.title = 'Вопрос по уроку: ' + (tree.lesson.title || '');
+              prefill.tags = 'Категория: ' + tree.category.title + ', Курс: ' + tree.course.title + ', Урок: ' + tree.lesson.title;
+            }
+            openCreateQuestionModal(prefill);
+          }).catch(function(){ openCreateQuestionModal(prefill); });
+        } else {
+          openCreateQuestionModal(prefill);
+        }
+      }
+
+      if (lessonId) {
+        fetch('/api/lessons/' + lessonId + '/course-tree').then(function(r) {
+          return r.json();
+        }).then(function(tree) {
+          if (tree && tree.category && tree.course && tree.lesson) {
+            var breadcrumbs = document.getElementById('question-breadcrumbs');
+            if (breadcrumbs) {
+              breadcrumbs.innerHTML = 
+                '<a href="/main-pg">Главная</a> > ' +
+                '<a href="/all-categories-pg">Категории</a> > ' +
+                '<a href="/all-courses-pg?category_id=' + tree.category.id + '">' + 
+                  (tree.category.title || '') + '</a> > ' +
+                '<a href="/all-lessons-pg?course_id=' + tree.course.id + '">' + 
+                  (tree.course.title || '') + '</a> > ' +
+                '<a href="/lessons-content-pg?lesson_id=' + tree.lesson.id + '">' + 
+                  (tree.lesson.title || '') + '</a> > ' +
+                '<span>Вопрос</span>';
+            }
+            var backBtn = document.getElementById('back-to-lesson-btn');
+            if (backBtn) backBtn.style.display = 'block';
+          }
+        }).catch(console.error);
+      }
+      
+      function goBackToLesson() {
+        if (lessonId) {
+          window.location.href = '/lessons-content-pg?lesson_id=' + lessonId;
+        }
+      }
+      window.goBackToLesson = goBackToLesson;
+    })();
+  </script>
+  </body>
+</html>

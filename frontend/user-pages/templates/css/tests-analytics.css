@@ -1,0 +1,134 @@
+/* Тесты (tests-analytics-pg)
+   Важно: inline <style> на страницах отбрасывается при серверном рендеринге,
+   поэтому все критичные стили держим здесь (через <link>). */
+
+/* Вкладки — делаем как pill-filter/pill из страницы вопросов */
+.tests-tabs {
+  display: inline-flex;
+  padding: 0.15rem;
+  background: #ffffff;
+  border-radius: 8px;
+  border: 1px solid rgba(148, 163, 184, 0.5);
+  gap: 0.15rem;
+  margin-bottom: 0.75rem;
+}
+
+.tests-tab {
+  appearance: none;
+  border: 0;
+  border-radius: 6px;
+  padding: 0.35rem 0.9rem;
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: #4b5563;
+  background: transparent;
+  cursor: pointer;
+  transition: background 0.2s ease, color 0.2s ease;
+}
+
+.tests-tab.active {
+  background: #67add3;
+  color: #ffffff;
+}
+
+.tests-tab:hover {
+  background: rgba(226, 232, 240, 0.7);
+}
+
+.tests-tab.active:hover {
+  background: #5a9bc4;
+}
+
+.tests-tab:focus-visible {
+  outline: 2px solid rgba(103, 173, 211, 0.7);
+  outline-offset: 2px;
+}
+
+/* Панели: показываем только активную */
+.tests-panel { display: none; }
+.tests-panel.active { display: block; }
+
+/* Контейнер таблицы — делаем как .table-wrap из профиля */
+.users-table-section .table-container {
+  margin-top: 0;
+  border-radius: 16px;
+  border: 1px solid rgba(148, 163, 184, 0.55);
+  background: #ffffff;
+  box-shadow: 0 10px 28px rgba(15, 23, 42, 0.08);
+  overflow: auto;
+  -webkit-overflow-scrolling: touch;
+}
+
+/* Таблица — визуально как .profile-table/.data-table */
+.users-table.tests-table {
+  width: 100%;
+  min-width: 780px;
+  border-collapse: collapse;
+  border-spacing: 0;
+}
+
+.users-table.tests-table th,
+.users-table.tests-table td {
+  padding: 12px 14px;
+  font-size: 15px;
+  border-bottom: 1px solid rgba(148, 163, 184, 0.55);
+  border-right: 1px solid rgba(148, 163, 184, 0.55);
+  vertical-align: middle;
+  color: #0f172a;
+}
+
+.users-table.tests-table th {
+  position: sticky;
+  top: 0;
+  z-index: 2;
+  background: #ffffff;
+  color: #334155;
+  font-weight: 650;
+  text-align: left;
+  border-bottom: 2px solid rgba(148, 163, 184, 0.75);
+}
+
+.users-table.tests-table tbody tr:nth-child(2n) td {
+  background: #fbfdff;
+}
+
+.users-table.tests-table tbody tr:hover td {
+  background: rgba(226, 232, 240, 0.55);
+}
+
+.users-table.tests-table tbody tr:last-child td {
+  border-bottom: none;
+}
+
+.users-table.tests-table th:last-child,
+.users-table.tests-table td:last-child {
+  border-right: none;
+  text-align: right;
+}
+
+.users-table.tests-table .loading {
+  padding: 1.25rem;
+  font-style: italic;
+  color: #6b7280;
+  text-align: center;
+}
+
+/* Кнопки действий в ячейке */
+.tests-actions {
+  display: inline-flex;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+}
+
+.tests-actions .refresh-button {
+  padding: 0.45rem 0.75rem;
+  border-radius: 10px;
+  font-weight: 600;
+}
+
+/* KPI карточки оставляем в общей палитре сайта */
+.statistics-overview .stat-card {
+  border-left-color: #67add3;
+}
+

@@ -1,0 +1,315 @@
+<!DOCTYPE html>
+<html lang="ru">
+  <head>
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta charset="utf-8" />
+    <link rel="stylesheet" href="/users-info-pg/globals.css" />
+    <link rel="stylesheet" href="/users-info-pg/styleguide.css" />
+    <link rel="stylesheet" href="/templates/css/header-footer.css" />
+    <link rel="stylesheet" href="/templates/css/custom-modal.css" />
+    <link rel="stylesheet" href="/users-info-pg/style.css" />
+    <title>LearnSite - Статистика пользователей</title>
+  </head>
+  <body>
+    <div class="screen">
+      <header class="header">
+        <div class="logo-group">
+          <div class="logo">
+            <div class="letters-group">
+              <img class="logotype" src="/users-info-pg/img/лого.svg" alt="L letter" />
+            </div>
+          </div>
+          <div class="labels">
+            <h1 class="site-name">Образовательный</h1>
+            <h2 class="site-subtitle">портал ГТНГ</h2>
+            <span class="user-label">user</span>
+          </div>
+        </div>
+        <nav class="navigation">
+          <ul>
+            <li><a href="/main">главная</a></li>
+            <li><a href="/questions">вопросы</a></li>
+            <li><a href="/all-lessons">тестирования</a></li>
+            <li><a href="/lessons-content">база знаний</a></li>
+            <li><a href="/users-info">пользователи</a></li>
+            <li><a href="/main">новости</a></li>
+          </ul>
+        </nav>
+        <div class="user-info">
+          <span class="user-name">пользователь</span>
+          <div class="user-icon">
+            <img src="/users-info-pg/img/vector.svg" alt="User icon" />
+          </div>
+        </div>
+      </header>
+        <main class="dashboard">
+          <h1 class="page-title">Статистика всех<br />пользователей</h1>
+          
+          <!-- Фильтры -->
+          <section class="filters-section">
+            <div class="filters-container">
+              <select id="department-filter" class="filter-select">
+                <option value="">Все отделы</option>
+              </select>
+              <input type="text" id="search-input" class="search-input" placeholder="Поиск по имени или логину...">
+              <button id="refresh-btn" class="refresh-button">Обновить</button>
+            </div>
+          </section>
+          
+          <!-- Статистика -->
+          <section class="statistics-overview">
+            <div class="stats-grid">
+              <div class="stat-card">
+                <h3>Всего пользователей</h3>
+                <span id="total-users" class="stat-number">-</span>
+              </div>
+              <div class="stat-card">
+                <h3>Активных пользователей</h3>
+                <span id="active-users" class="stat-number">-</span>
+              </div>
+              <div class="stat-card">
+                <h3>Всего курсов</h3>
+                <span id="total-courses" class="stat-number">-</span>
+              </div>
+              <div class="stat-card">
+                <h3>Отделов</h3>
+                <span id="total-departments" class="stat-number">-</span>
+              </div>
+            </div>
+          </section>
+          
+          <!-- Таблица пользователей -->
+          <section class="users-table-section">
+            <div class="table-container">
+              <table id="users-table" class="users-table">
+                <thead>
+                  <tr>
+                    <th>Пользователь</th>
+                    <th>Отдел</th>
+                    <th>Курсы</th>
+                    <th>Прогресс</th>
+                    <th>Статус</th>
+                  </tr>
+                </thead>
+                <tbody id="users-table-body">
+                  <tr>
+                    <td colspan="5" class="loading">Загрузка данных...</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </section>
+          
+          <!-- Кнопка экспорта -->
+          <section class="export-section">
+            <button class="statistics__button" id="export-btn">посмотреть таблицу excel</button>
+          </section>
+        </main>
+        <footer class="footer">
+          <div class="footer-content">
+            <p class="description">платформа для обучения и тестирования</p>
+            <nav class="footer-nav">
+              <ul>
+                <li><a href="#">о нас</a></li>
+                <li><a href="#">дать обратную связь</a></li>
+              </ul>
+            </nav>
+          </div>
+        </footer>
+        <div class="made-by">
+            <p>Made by: Manakov Ivan</p>
+        </div>
+    </div>
+    
+    <script>
+      // API endpoints
+      const API_BASE = '/api';
+      
+      // DOM элементы
+      const departmentFilter = document.getElementById('department-filter');
+      const searchInput = document.getElementById('search-input');
+      const refreshBtn = document.getElementById('refresh-btn');
+      const exportBtn = document.getElementById('export-btn');
+      const usersTableBody = document.getElementById('users-table-body');
+      
+      // Статистика
+      const totalUsersEl = document.getElementById('total-users');
+      const activeUsersEl = document.getElementById('active-users');
+      const totalCoursesEl = document.getElementById('total-courses');
+      const totalDepartmentsEl = document.getElementById('total-departments');
+      
+      const role = document.body.getAttribute('data-role') || 'user';
+      
+      // Загрузка данных
+      async function loadData() {
+        try {
+          await loadStatistics();
+          await loadDepartments();
+          if (role === 'admin') {
+            await loadUsers();
+          } else {
+            await loadCurrentUser();
+          }
+        } catch (error) {
+          console.error('Ошибка загрузки данных:', error);
+          showError('Ошибка загрузки данных');
+        }
+      }
+      
+      // Для роли user: загрузка только текущего пользователя (моя активность)
+      async function loadCurrentUser() {
+        const response = await fetch(`${API_BASE}/current-user`);
+        const data = await response.json();
+        if (response.ok && data.id) {
+          const userRow = {
+            id: data.id,
+            full_name: data.full_name || data.username,
+            username: data.username,
+            department: data.department || '',
+            course_progress: data.course_progress || [],
+            is_active: data.is_active !== false
+          };
+          window._currentUserProgress = data;
+          renderUsersTable([userRow]);
+        } else {
+          showError('Ошибка загрузки данных');
+        }
+      }
+      
+      // Загрузка статистики
+      async function loadStatistics() {
+        const response = await fetch(`${API_BASE}/statistics`);
+        if (!response.ok) {
+          throw new Error(`HTTP error! status: ${response.status}`);
+        }
+        const data = await response.json();
+        totalUsersEl.textContent = data.overview.total_users;
+        activeUsersEl.textContent = data.overview.active_users;
+        totalCoursesEl.textContent = data.overview.total_courses;
+        totalDepartmentsEl.textContent = data.departments.length;
+      }
+      
+      // Загрузка отделов
+      async function loadDepartments() {
+        const response = await fetch(`${API_BASE}/departments`);
+        if (!response.ok) {
+          throw new Error(`HTTP error! status: ${response.status}`);
+        }
+        const data = await response.json();
+        // Очищаем и заполняем селект отделов
+        departmentFilter.innerHTML = '<option value="">Все отделы</option>';
+        data.departments.forEach(dept => {
+          const option = document.createElement('option');
+          option.value = dept;
+          option.textContent = dept;
+          departmentFilter.appendChild(option);
+        });
+      }
+      
+      // Загрузка пользователей
+      async function loadUsers() {
+        const department = departmentFilter.value;
+        const search = searchInput.value;
+        
+        let url = `${API_BASE}/users?`;
+        if (department) url += `department=${encodeURIComponent(department)}&`;
+        if (search) url += `search=${encodeURIComponent(search)}&`;
+        
+        const response = await fetch(url);
+        const data = await response.json();
+        
+        if (response.ok) {
+          renderUsersTable(data.users);
+        } else {
+          showError('Ошибка загрузки пользователей');
+        }
+      }
+      
+      // Отображение таблицы пользователей
+      function renderUsersTable(users) {
+        usersTableBody.innerHTML = '';
+        
+        if (users.length === 0) {
+          usersTableBody.innerHTML = '<tr><td colspan="5" class="no-data">Пользователи не найдены</td></tr>';
+          return;
+        }
+        
+        users.forEach(user => {
+          const row = document.createElement('tr');
+          
+          // Прогресс по курсам
+          const totalCourses = user.course_progress ? user.course_progress.length : 0;
+          const completedCourses = user.course_progress ? user.course_progress.filter(cp => cp.is_completed).length : 0;
+          const totalLessons = user.course_progress ? user.course_progress.reduce((sum, cp) => sum + cp.lessons_completed, 0) : 0;
+          
+          row.innerHTML = `
+            <td>
+              <div class="user-info">
+                <strong>${user.full_name}</strong>
+                <small>@${user.username}</small>
+              </div>
+            </td>
+            <td>${user.department}</td>
+            <td>
+              <div class="courses-info">
+                <span class="courses-count">${completedCourses}/${totalCourses}</span>
+                <small>курсов завершено</small>
+              </div>
+            </td>
+            <td>
+              <div class="progress-info">
+                <span class="lessons-count">${totalLessons}</span>
+                <small>уроков пройдено</small>
+              </div>
+            </td>
+            <td>
+              <span class="status-badge ${user.is_active ? 'active' : 'inactive'}">
+                ${user.is_active ? 'Активен' : 'Неактивен'}
+              </span>
+            </td>
+          `;
+          
+          // Для пользователя клик по строке ведёт в профиль
+          row.addEventListener('click', () => {
+            window.location.href = '/user-profile-pg';
+          });
+          
+          usersTableBody.appendChild(row);
+        });
+      }
+      
+      // Детальный просмотр вынесен в отдельную страницу профиля пользователя.
+      // Показать ошибку
+      function showError(message) {
+        usersTableBody.innerHTML = `<tr><td colspan="5" class="error">${message}</td></tr>`;
+      }
+      
+      // Обработчики событий
+      departmentFilter.addEventListener('change', () => { if (role === 'admin') loadUsers(); });
+      searchInput.addEventListener('input', debounce(() => { if (role === 'admin') loadUsers(); }, 300));
+      refreshBtn.addEventListener('click', loadData);
+      
+      // Экспорт в Excel (заглушка)
+      exportBtn.addEventListener('click', () => {
+        customAlert('Функция экспорта в Excel будет реализована в следующей версии', 'Информация');
+      });
+      
+      // Функция debounce для поиска
+      function debounce(func, wait) {
+        let timeout;
+        return function executedFunction(...args) {
+          const later = () => {
+            clearTimeout(timeout);
+            func(...args);
+          };
+          clearTimeout(timeout);
+          timeout = setTimeout(later, wait);
+        };
+      }
+      
+      // Загружаем данные при загрузке страницы
+      document.addEventListener('DOMContentLoaded', loadData);
+    </script>
+    <script src="/templates/js/custom-modal.js"></script>
+  </body>
+</html>

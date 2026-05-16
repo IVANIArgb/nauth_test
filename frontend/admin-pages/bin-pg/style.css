@@ -1,0 +1,111 @@
+/* Стили для страницы корзины (админ) */
+
+/* Основной контент — центрируем и даем внутренние отступы,
+   как на странице категорий/курсов, чтобы карточки не прилипали к краям экрана. */
+.main-content {
+  flex: 1;
+  padding: 2rem;
+  max-width: 1200px;
+  margin: 0 auto;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+/* Заголовок страницы — как на страницах категорий/курсов */
+.main-content .page-title {
+  font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display", "SF Pro Text", "Helvetica Neue", Helvetica, Arial, sans-serif;
+  font-size: 2.5rem;
+  font-weight: 500;
+  color: #242627;
+  margin-bottom: 2rem;
+  text-align: center;
+}
+
+.breadcrumbs {
+    margin-bottom: 1rem;
+    padding: 0.5rem 0;
+    font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display", "SF Pro Text", "Helvetica Neue", Helvetica, Arial, sans-serif;
+    font-size: 0.875rem;
+    color: #4f4f4f;
+}
+
+.breadcrumbs a {
+    color: #3259ac;
+    text-decoration: none;
+    transition: color 0.2s ease;
+}
+
+.breadcrumbs a:hover {
+    color: #1e3f73;
+    text-decoration: underline;
+}
+
+.breadcrumbs span {
+    color: #666;
+}
+
+/* Фильтр сортировки по типу */
+.bin-sort-filter {
+    display: flex;
+    justify-content: center;
+    margin-bottom: 2rem;
+    padding: 0 1rem;
+}
+
+.bin-sort-filter select {
+    padding: 0.75rem 1.5rem;
+    font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display", "SF Pro Text", "Helvetica Neue", Helvetica, Arial, sans-serif;
+    font-size: 1rem;
+    font-weight: 500;
+    color: #242627;
+    background: #ffffff;
+    border: 2px solid #e5e5e5;
+    border-radius: 12px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    min-width: 220px;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+    appearance: none;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%2367add3' d='M6 9L1 4h10z'/%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-position: right 1rem center;
+    padding-right: 2.5rem;
+}
+
+.bin-sort-filter select:hover,
+.bin-sort-filter select:focus {
+    outline: none;
+    border-color: #67add3;
+}
+
+.deleted-objects-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(375px, 100fr));
+    gap: 2rem;
+    margin-bottom: 3rem;
+}
+
+/* Стили карточек удалены - используются единые стили из unified-cards.css */
+
+.empty-message {
+    text-align: center;
+    color: #999;
+    font-size: 1.1rem;
+    padding: 3rem 1rem;
+    font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display", "SF Pro Text", "Helvetica Neue", Helvetica, Arial, sans-serif;
+}
+
+/* Адаптивные отступы, чтобы на узких экранах корзина тоже выглядела аккуратно */
+@media (max-width: 1024px) {
+  .main-content {
+    padding: 1.5rem;
+  }
+}
+
+@media (max-width: 768px) {
+  .main-content {
+    padding: 1rem;
+  }
+}
+
+

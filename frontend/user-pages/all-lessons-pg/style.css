@@ -1,0 +1,731 @@
+/* Основные стили для LearnSite */
+
+body {
+  font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display", "SF Pro Text", "Helvetica Neue", Helvetica, Arial, sans-serif;
+  color: #4f4f4f;
+  line-height: 1.5;
+  margin: 0;
+  padding: 0;
+  scrollbar-color: #888 #f1f1f1; /* Ползунок и фон */
+  scrollbar-width: thin; /*  Устанавливаем тонкую полосу прокрутки */
+}
+
+/* Screen styles moved to header-footer.css */
+
+.main-page-user-type {
+  display: flex;
+  justify-content: center;
+  min-height: 100vh;
+  background-color: #ffffff;
+  padding-left: 60px;
+  padding-right: 60px;
+}
+
+body::-webkit-scrollbar-track {
+  background: #f1f1f1;
+}
+
+body::-webkit-scrollbar-thumb {
+  background: #888;
+}
+
+body::-webkit-scrollbar-thumb:hover {
+  background: #555;
+}
+
+/*  Плавный скроллинг */
+html {
+  scroll-behavior: smooth;
+}
+
+.content {
+  width: 100%;
+  max-width: 2000px;
+  display: flex;
+  flex-direction: column;
+}
+
+/* Header styles moved to header-footer.css */
+
+
+/* Header component styles moved to header-footer.css */
+
+/* Main Content */
+.main-content {
+  flex: 1;
+  padding: 2rem;
+  max-width: 1200px;
+  margin: 0 auto;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.page-title {
+  font-size: 3.125rem;
+  font-weight: 500;
+  text-align: center;
+  margin-bottom: 3rem;
+  margin-top: 1rem;
+  color: #4f4f4f;
+}
+
+/* Courses Grid */
+.courses-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(900px, 2fr));
+  gap: 2rem;
+  margin-bottom: 3rem;
+}
+
+/* Стили карточек удалены - используются единые стили из unified-cards.css */
+
+/* Footer styles moved to header-footer.css */
+
+/* Responsive Design */
+@media (max-width: 1024px) {
+  .main-content {
+    padding: 1.5rem;
+  }
+
+  .page-title {
+    font-size: 2.5rem;
+  }
+
+  .courses-grid {
+    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+    gap: 1.5rem;
+  }
+}
+
+@media (max-width: 768px) {
+  .main-content {
+    padding: 1rem;
+  }
+
+  .page-title {
+    font-size: 2rem;
+    margin-bottom: 2rem;
+  }
+
+  .courses-grid {
+    grid-template-columns: 1fr;
+    gap: 1rem;
+  }
+
+  /* Стили карточек удалены - используются единые стили из unified-cards.css */
+}
+
+@media (max-width: 480px) {
+  .page-title {
+    font-size: 1.5rem;
+  }
+
+  /* Стили карточек удалены - используются единые стили из unified-cards.css */
+}
+
+/* Add Lesson Button */
+.add-lesson-section {
+  display: flex;
+  justify-content: center;
+  margin-bottom: 1rem;
+  width: 100%;
+}
+
+.add-lesson-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.75rem;
+  background: #67add3;
+  color: #ffffff;
+  border: none;
+  border-radius: 12px;
+  padding: 1rem 2rem;
+  font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display", "SF Pro Text", "Helvetica Neue", Helvetica, Arial, sans-serif;
+  font-size: 1.1rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  box-shadow: 0 4px 15px rgba(75, 75, 75, 0.301);
+  width: 100%;
+  max-width: 1200px;
+}
+
+.add-lesson-btn:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 20px rgba(98, 147, 174, 0.4);
+  background: #6695af;
+}
+
+.add-lesson-btn:active {
+  transform: translateY(0);
+  box-shadow: 0 2px 10px rgba(98, 147, 174, 0.3);
+  background: #557c91;
+}
+
+/* Modal Styles - same as categories */
+.modal-overlay {
+  display: none;
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: rgba(0, 0, 0, 0.5);
+  backdrop-filter: blur(4px);
+  z-index: 10000;
+  align-items: center;
+  justify-content: center;
+  padding: 1rem;
+  animation: fadeIn 0.2s ease;
+}
+
+.modal-overlay[style*="flex"] {
+  display: flex !important;
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+.modal-container {
+  background: #ffffff;
+  border-radius: 16px;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+  max-width: 600px;
+  width: 100%;
+  max-height: 90vh;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  animation: slideUp 0.3s ease;
+  position: relative;
+}
+
+@keyframes slideUp {
+  from {
+    transform: translateY(20px);
+    opacity: 0;
+  }
+  to {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}
+
+.modal-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 1.5rem 2rem;
+  border-bottom: 1px solid #e5e5e5;
+  flex-shrink: 0;
+}
+
+.modal-title {
+  font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display", "SF Pro Text", "Helvetica Neue", Helvetica, Arial, sans-serif;
+  font-size: 1.5rem;
+  font-weight: 600;
+  color: #242627;
+  margin: 0;
+}
+
+.modal-close {
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 0.5rem;
+  color: #666;
+  border-radius: 8px;
+  transition: all 0.2s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+}
+
+.modal-close:hover {
+  background-color: #f5f5f5;
+  color: #242627;
+}
+
+.modal-close:active {
+  background-color: #e5e5e5;
+}
+
+.modal-body {
+  padding: 2rem;
+  flex: 1;
+  overflow-y: auto;
+}
+
+.modal-footer {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 1rem;
+  padding: 1.5rem 2rem;
+  border-top: 1px solid #e5e5e5;
+  flex-shrink: 0;
+}
+
+.form-group {
+  margin-bottom: 1.5rem;
+}
+
+.form-group:last-child {
+  margin-bottom: 0;
+}
+
+/* Меню форматирования текста в модальном окне редактирования */
+.text-format-options {
+  margin-top: 1rem;
+  padding-top: 1rem;
+  border-top: 1px solid #e5e5e5;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1rem;
+}
+
+.text-format-options fieldset {
+  border: 1px solid #e5e5e5;
+  border-radius: 8px;
+  padding: 0.75rem;
+  min-width: 180px;
+}
+
+.text-format-options legend {
+  font-size: 0.9rem;
+  padding: 0 0.5rem;
+}
+
+.text-format-options label {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin-right: 1rem;
+  font-size: 0.9rem;
+  cursor: pointer;
+}
+
+.text-format-options input[type="color"] {
+  width: 2rem;
+  height: 1.5rem;
+  padding: 2px;
+  cursor: pointer;
+  border: 1px solid #ccc;
+  border-radius: 4px;
+}
+
+.form-label {
+  display: block;
+  font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display", "SF Pro Text", "Helvetica Neue", Helvetica, Arial, sans-serif;
+  font-size: 0.95rem;
+  font-weight: 500;
+  color: #242627;
+  margin-bottom: 0.5rem;
+}
+
+.form-label .required {
+  color: #e74c3c;
+}
+
+.form-input,
+.form-textarea {
+  width: 100%;
+  padding: 0.75rem 1rem;
+  font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display", "SF Pro Text", "Helvetica Neue", Helvetica, Arial, sans-serif;
+  font-size: 1rem;
+  color: #242627;
+  background-color: #ffffff;
+  border: 2px solid #e5e5e5;
+  border-radius: 8px;
+  transition: all 0.2s ease;
+  box-sizing: border-box;
+}
+
+.form-input:focus,
+.form-textarea:focus {
+  outline: none;
+  border-color: #67add3;
+  box-shadow: 0 0 0 3px rgba(103, 173, 211, 0.1);
+}
+
+.form-textarea {
+  resize: vertical;
+  min-height: 100px;
+}
+
+.btn-cancel,
+.btn-submit {
+  padding: 0.75rem 1.5rem;
+  font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display", "SF Pro Text", "Helvetica Neue", Helvetica, Arial, sans-serif;
+  font-size: 1rem;
+  font-weight: 500;
+  border-radius: 8px;
+  border: none;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.btn-cancel {
+  background-color: #f5f5f5;
+  color: #666;
+}
+
+.btn-cancel:hover {
+  background-color: #e5e5e5;
+  color: #242627;
+}
+
+.btn-submit {
+  background-color: #67add3;
+  color: #ffffff;
+}
+
+.btn-submit:hover {
+  background-color: #6695af;
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(103, 173, 211, 0.3);
+}
+
+.btn-submit:active {
+  transform: translateY(0);
+}
+
+.empty-message,
+.loading-message {
+  text-align: center;
+  color: #999;
+  font-size: 1.1rem;
+  padding: 3rem 1rem;
+  font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display", "SF Pro Text", "Helvetica Neue", Helvetica, Arial, sans-serif;
+}
+
+/* Lesson Constructor Styles */
+.lesson-constructor-modal .modal-container {
+  max-width: 900px;
+}
+
+.lesson-constructor-body {
+  max-height: 70vh;
+  overflow-y: auto;
+}
+
+.content-constructor-section {
+  margin-top: 2rem;
+  padding-top: 2rem;
+  border-top: 1px solid #e5e5e5;
+}
+
+.constructor-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 1.5rem;
+}
+
+.constructor-header h3 {
+  font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display", "SF Pro Text", "Helvetica Neue", Helvetica, Arial, sans-serif;
+  font-size: 1.2rem;
+  font-weight: 600;
+  color: #242627;
+  margin: 0;
+}
+
+.add-content-dropdown {
+  position: relative;
+}
+
+.btn-add-content {
+  background: #67add3;
+  color: #ffffff;
+  border: none;
+  border-radius: 8px;
+  padding: 0.75rem 1.5rem;
+  font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display", "SF Pro Text", "Helvetica Neue", Helvetica, Arial, sans-serif;
+  font-size: 1rem;
+  font-weight: 500;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  transition: all 0.2s ease;
+}
+
+.btn-add-content:hover {
+  background: #6695af;
+}
+
+.dropdown-arrow {
+  font-size: 0.8rem;
+  transition: transform 0.2s ease;
+}
+
+.add-content-dropdown.active .dropdown-arrow {
+  transform: rotate(180deg);
+}
+
+.content-menu {
+  position: absolute;
+  top: 100%;
+  right: 0;
+  margin-top: 0.5rem;
+  background: #ffffff;
+  border: 1px solid #e5e5e5;
+  border-radius: 8px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  min-width: 200px;
+  display: none;
+  z-index: 1000;
+}
+
+.content-menu.show {
+  display: block;
+}
+
+.content-menu-item {
+  width: 100%;
+  padding: 0.75rem 1rem;
+  border: none;
+  background: none;
+  text-align: left;
+  cursor: pointer;
+  font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display", "SF Pro Text", "Helvetica Neue", Helvetica, Arial, sans-serif;
+  font-size: 1rem;
+  color: #242627;
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  transition: background 0.2s ease;
+}
+
+.content-menu-item:hover {
+  background: #f5f5f5;
+}
+
+.content-menu-item:first-child {
+  border-radius: 8px 8px 0 0;
+}
+
+.content-menu-item:last-child {
+  border-radius: 0 0 8px 8px;
+}
+
+.menu-icon {
+  font-size: 1.2rem;
+}
+
+.content-blocks-container {
+  min-height: 200px;
+  padding: 1rem;
+  background: #f9f9f9;
+  border-radius: 8px;
+  border: 2px dashed #e5e5e5;
+}
+
+.empty-blocks-message {
+  text-align: center;
+  color: #999;
+  font-size: 1rem;
+  padding: 2rem;
+  font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display", "SF Pro Text", "Helvetica Neue", Helvetica, Arial, sans-serif;
+}
+
+.content-block-item {
+  background: #ffffff;
+  border: 2px solid #e5e5e5;
+  border-radius: 8px;
+  padding: 1rem;
+  margin-bottom: 1rem;
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  cursor: move;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+}
+
+.content-block-item:hover {
+  border-color: #67add3;
+  box-shadow: 0 2px 8px rgba(103, 173, 211, 0.2);
+}
+
+.content-block-item.dragging {
+  opacity: 0.5;
+  border-color: #67add3;
+  box-shadow: 0 4px 12px rgba(103, 173, 211, 0.3);
+}
+
+.block-handle {
+  font-size: 1.5rem;
+  color: #999;
+  cursor: grab;
+  user-select: none;
+}
+
+.block-handle:active {
+  cursor: grabbing;
+}
+
+.block-content {
+  flex: 1;
+}
+
+.block-preview-heading {
+  font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display", "SF Pro Text", "Helvetica Neue", Helvetica, Arial, sans-serif;
+  font-size: 1.3rem;
+  font-weight: 600;
+  color: #242627;
+  margin: 0;
+}
+
+.block-preview-text {
+  font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display", "SF Pro Text", "Helvetica Neue", Helvetica, Arial, sans-serif;
+  font-size: 1rem;
+  color: #666;
+  margin: 0;
+}
+
+.block-preview-image {
+  max-width: 200px;
+  max-height: 150px;
+  border-radius: 4px;
+}
+
+.attachments-container {
+  margin-top: 0.5rem;
+  padding: 0.5rem;
+  background: #f9f9f9;
+  border-radius: 4px;
+  min-height: 40px;
+}
+
+.attachment-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0.5rem;
+  background: #ffffff;
+  border: 1px solid #e5e5e5;
+  border-radius: 4px;
+  margin-bottom: 0.5rem;
+}
+
+.attachment-item:last-child {
+  margin-bottom: 0;
+}
+
+.btn-remove-attachment {
+  background: #ff6b6b;
+  color: #ffffff;
+  border: none;
+  border-radius: 4px;
+  width: 24px;
+  height: 24px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.2rem;
+  line-height: 1;
+  padding: 0;
+}
+
+.btn-remove-attachment:hover {
+  background: #ff5252;
+}
+
+.btn-add-attachment {
+  background: #67add3;
+  color: #ffffff;
+  border: none;
+  border-radius: 6px;
+  padding: 0.5rem 1rem;
+  font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display", "SF Pro Text", "Helvetica Neue", Helvetica, Arial, sans-serif;
+  font-size: 0.9rem;
+  font-weight: 500;
+  cursor: pointer;
+  margin-top: 0.5rem;
+  transition: all 0.2s ease;
+}
+
+.btn-add-attachment:hover {
+  background: #6695af;
+}
+
+.attachments-badge {
+  font-size: 0.85rem;
+  color: #67add3;
+  font-weight: 600;
+}
+
+.no-attachments {
+  color: #999;
+  font-size: 0.9rem;
+  margin: 0;
+  padding: 0.5rem;
+}
+
+.block-preview-video,
+.block-preview-file {
+  font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display", "SF Pro Text", "Helvetica Neue", Helvetica, Arial, sans-serif;
+  font-size: 1rem;
+  color: #666;
+  padding: 0.5rem;
+  background: #f5f5f5;
+  border-radius: 4px;
+}
+
+.block-preview-placeholder {
+  font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display", "SF Pro Text", "Helvetica Neue", Helvetica, Arial, sans-serif;
+  font-size: 1rem;
+  color: #999;
+  padding: 1rem;
+  text-align: center;
+  background: #f9f9f9;
+  border-radius: 4px;
+  border: 1px dashed #ddd;
+}
+
+.block-actions {
+  display: flex;
+  gap: 0.5rem;
+}
+
+.btn-edit-block-small,
+.btn-delete-block-small {
+  background: #67add3;
+  color: #ffffff;
+  border: none;
+  border-radius: 6px;
+  width: 32px;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  font-size: 1rem;
+  transition: all 0.2s ease;
+  padding: 0;
+}
+
+.btn-delete-block-small {
+  background: #e74c3c;
+}
+
+.btn-edit-block-small:hover {
+  background: #6695af;
+  transform: scale(1.1);
+}
+
+.btn-delete-block-small:hover {
+  background: #c0392b;
+  transform: scale(1.1);
+}

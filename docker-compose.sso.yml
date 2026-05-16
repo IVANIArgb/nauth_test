@@ -1,0 +1,40 @@
+# SSO без keytab: nginx подставляет проверенный X-Remote-User, Flask доверяет только прокси.
+#
+#   copy docker.env.sso.example .env
+#   docker compose -f docker-compose.yml -f docker-compose.sso.yml up -d --build
+#
+# Сайт: http://localhost:${WEB_PORT:-8080}/api/current-user
+# Прямой доступ к приложению (без SSO): http://localhost:8000 — guest/fallback
+
+services:
+  sso-proxy:
+    image: nginx:1.27-alpine
+    container_name: learnsite-sso-proxy
+    ports:
+      - "${WEB_PORT:-8080}:80"
+    environment:
+      SSO_DEFAULT_USER: ${SSO_DEFAULT_USER:-testadmin}
+      # base64 логина для кириллицы (HTTP-заголовки — только latin-1)
+      SSO_DEFAULT_USER_B64: ${SSO_DEFAULT_USER_B64:-}
+    entrypoint: ["/bin/sh", "-c"]
+    command:
+      - |
+        if [ -z "$$SSO_DEFAULT_USER_B64" ]; then
+          export SSO_DEFAULT_USER_B64=$$(printf '%s' "$$SSO_DEFAULT_USER" | base64 -w 0 2>/dev/null || printf '%s' "$$SSO_DEFAULT_USER" | base64)
+        fi
+        exec /docker-entrypoint.sh nginx -g 'daemon off;'
+    volumes:
+      - ./deploy/nginx/sso-proxy.conf.template:/etc/nginx/templates/default.conf.template:ro
+    depends_on:
+      web:
+        condition: service_healthy
+    restart: unless-stopped
+
+  web:
+    ports:
+      - "8000:8000"
+    environment:
+      TRUST_REMOTE_USER: "true"
+      DOCKER_AUTH_FALLBACK: "false"
+      KERBEROS_GSSAPI_ENABLED: "false"
+      ALLOW_INSECURE_NEGOTIATE_HEURISTIC: "false"

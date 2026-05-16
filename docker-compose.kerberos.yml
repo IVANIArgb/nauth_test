@@ -1,0 +1,29 @@
+# Kerberos (GSSAPI) + LDAP (AD) в контейнере.
+# Перед первым запуском: scripts/init_kerberos_docker.ps1 или .sh
+# Запуск:
+#   docker compose -f docker-compose.yml -f docker-compose.kerberos.yml --env-file .env up -d --build
+#
+# Обязательно в .env: KERBEROS_HOSTNAME, LDAP_* (если LDAP_ENABLED=true), замените keytab на реальный.
+
+services:
+  web:
+    environment:
+      DOCKER_AUTH_FALLBACK: "false"
+      KERBEROS_GSSAPI_ENABLED: "true"
+      KERBEROS_HOSTNAME: ${KERBEROS_HOSTNAME:-portal.example.com}
+      KERBEROS_KEYTAB: /etc/krb5.keytab
+      KRB5_CONFIG: /etc/krb5.conf
+      KRB5_KTNAME: FILE:/etc/krb5.keytab
+      KERBEROS_REALM: ${KERBEROS_REALM:-EXAMPLE.COM}
+      KERBEROS_SERVICE_NAME: ${KERBEROS_SERVICE_NAME:-HTTP}
+      KERBEROS_KDC_HOST: ${KERBEROS_KDC_HOST:-}
+      KERBEROS_KDC_PORT: ${KERBEROS_KDC_PORT:-88}
+      LDAP_ENABLED: ${LDAP_ENABLED:-false}
+      LDAP_SERVER: ${LDAP_SERVER}
+      LDAP_BASE_DN: ${LDAP_BASE_DN}
+      LDAP_USER: ${LDAP_USER}
+      LDAP_PASSWORD: ${LDAP_PASSWORD}
+      LDAP_USE_SSL: ${LDAP_USE_SSL:-false}
+    volumes:
+      - ${KRB5_CONF_PATH:-./kerberos/krb5.conf}:/etc/krb5.conf:ro
+      - ${KRB5_KEYTAB_PATH:-./kerberos/http.keytab}:/etc/krb5.keytab:ro

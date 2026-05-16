@@ -1,0 +1,13 @@
+# Опционально: удобнее отладка в контейнере (Flask dev server, DEBUG, один процесс).
+# Запуск:
+#   docker compose -f docker-compose.yml -f docker-compose.dev.yml up --build
+#
+# Без этого файла используется Gunicorn (как в production-like образе).
+
+services:
+  web:
+    environment:
+      DEBUG: "true"
+      LOG_LEVEL: DEBUG
+      GUNICORN_WORKERS: "1"
+      RUN_WITH_GUNICORN: "false"

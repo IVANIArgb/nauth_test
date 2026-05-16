@@ -1,0 +1,237 @@
+/**
+ * Кастомное модальное окно
+ * Заменяет стандартные alert() и confirm()
+ */
+
+/* ============================================
+   OVERLAY (ФОН)
+   ============================================ */
+
+.custom-modal-overlay {
+    display: none;
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background-color: rgba(0, 0, 0, 0.5);
+    backdrop-filter: blur(4px);
+    z-index: 10000;
+    align-items: center;
+    justify-content: center;
+    padding: 1rem;
+    animation: fadeIn 0.2s ease;
+}
+
+.custom-modal-overlay.show {
+    display: flex;
+}
+
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+    }
+    to {
+        opacity: 1;
+    }
+}
+
+/* ============================================
+   МОДАЛЬНОЕ ОКНО
+   ============================================ */
+
+.custom-modal {
+    background-color: #424242;
+    border-radius: 20px;
+    max-width: 500px;
+    width: 100%;
+    max-height: 90vh;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5);
+    animation: slideUp 0.3s ease;
+    position: relative;
+}
+
+@keyframes slideUp {
+    from {
+        transform: translateY(20px);
+        opacity: 0;
+    }
+    to {
+        transform: translateY(0);
+        opacity: 1;
+    }
+}
+
+/* ============================================
+   ЗАГОЛОВОК
+   ============================================ */
+
+.custom-modal-header {
+    padding: 2rem 2rem 1.5rem 2rem;
+    text-align: center;
+}
+
+.custom-modal-title {
+    font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display", "SF Pro Text", "Helvetica Neue", Helvetica, Arial, sans-serif;
+    font-size: 1.75rem;
+    font-weight: 600;
+    color: #ffffff;
+    margin: 0;
+    line-height: 1.3;
+}
+
+/* ============================================
+   КОНТЕНТ
+   ============================================ */
+
+.custom-modal-body {
+    padding: 0 2rem 2rem 2rem;
+    flex: 1;
+    overflow-y: auto;
+    min-height: 60px;
+}
+
+.custom-modal-message {
+    font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display", "SF Pro Text", "Helvetica Neue", Helvetica, Arial, sans-serif;
+    font-size: 1rem;
+    color: #e0e0e0;
+    line-height: 1.6;
+    margin: 0;
+    text-align: center;
+}
+
+/* Профиль / длинный текст: переносы из JS и выравнивание по левому краю */
+.custom-modal-message.custom-modal-message--profile {
+    white-space: pre-line;
+    text-align: left;
+    width: 100%;
+    font-size: 0.98rem;
+    line-height: 1.55;
+}
+
+/* ============================================
+   КНОПКИ
+   ============================================ */
+
+.custom-modal-footer {
+    padding: 1.5rem 2rem 2rem 2rem;
+    display: flex;
+    gap: 1rem;
+    justify-content: center;
+}
+
+.custom-modal-btn {
+    flex: 1;
+    padding: 0.875rem 1.5rem;
+    border: none;
+    border-radius: 25px;
+    font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display", "SF Pro Text", "Helvetica Neue", Helvetica, Arial, sans-serif;
+    font-size: 1rem;
+    font-weight: 600;
+    color: #ffffff;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    min-width: 120px;
+    text-align: center;
+}
+
+.custom-modal-btn:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+}
+
+.custom-modal-btn:active {
+    transform: translateY(0);
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.2);
+}
+
+/* Кнопка отмены (левая, розовая) */
+.custom-modal-btn-cancel {
+    background-color: #e7b4be;
+}
+
+.custom-modal-btn-cancel:hover {
+    background-color: #d88f9a;
+}
+
+/* Кнопка подтверждения (правая, зеленая) */
+.custom-modal-btn-confirm {
+    background-color: #76e771;
+}
+
+.custom-modal-btn-confirm:hover {
+    background-color: #81c784;
+}
+
+/* Кнопка OK (одна кнопка) */
+.custom-modal-btn-ok {
+    background-color: #76e771;
+    max-width: 200px;
+}
+
+.custom-modal-btn-ok:hover {
+    background-color: #81c784;
+}
+
+/* ============================================
+   АДАПТИВНОСТЬ
+   ============================================ */
+
+@media (max-width: 768px) {
+    .custom-modal {
+        max-width: 90%;
+        border-radius: 16px;
+    }
+    
+    .custom-modal-header {
+        padding: 1.5rem 1.5rem 1rem 1.5rem;
+    }
+    
+    .custom-modal-title {
+        font-size: 1.5rem;
+    }
+    
+    .custom-modal-body {
+        padding: 0 1.5rem 1.5rem 1.5rem;
+    }
+    
+    .custom-modal-footer {
+        padding: 1rem 1.5rem 1.5rem 1.5rem;
+        flex-direction: column;
+    }
+    
+    .custom-modal-btn {
+        width: 100%;
+    }
+}
+
+@media (max-width: 480px) {
+    .custom-modal {
+        max-width: 95%;
+        border-radius: 12px;
+    }
+    
+    .custom-modal-header {
+        padding: 1.25rem 1.25rem 0.75rem 1.25rem;
+    }
+    
+    .custom-modal-title {
+        font-size: 1.25rem;
+    }
+    
+    .custom-modal-body {
+        padding: 0 1.25rem 1.25rem 1.25rem;
+    }
+    
+    .custom-modal-footer {
+        padding: 0.75rem 1.25rem 1.25rem 1.25rem;
+    }
+    
+    .custom-modal-btn {
+        padding: 0.75rem 1.25rem;
+        font-size: 0.95rem;
+    }
+}

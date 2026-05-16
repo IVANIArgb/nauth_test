@@ -1,0 +1,9 @@
+/* Force -apple-system font site-wide */
+:root { --app-font: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif; }
+
+html, body, .screen, * {
+  font-family: var(--app-font) !important;
+}
+
+
+

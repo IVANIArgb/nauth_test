@@ -1,0 +1,684 @@
+/* Основные стили для LearnSite */
+
+body {
+  font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display", "SF Pro Text", "Helvetica Neue", Helvetica, Arial, sans-serif;
+  color: #4f4f4f;
+  line-height: 1.5;
+  margin: 0;
+  padding: 0;
+  scrollbar-color: #888 #f1f1f1; /* Ползунок и фон */
+  scrollbar-width: thin; /*  Устанавливаем тонкую полосу прокрутки */
+}
+
+/* Screen styles moved to header-footer.css */
+
+/* removed unused: .main-page-user-type */
+
+body::-webkit-scrollbar-track {
+  background: #f1f1f1;
+}
+
+body::-webkit-scrollbar-thumb {
+  background: #888;
+}
+
+body::-webkit-scrollbar-thumb:hover {
+  background: #555;
+}
+
+/*  Плавный скроллинг */
+html {
+  scroll-behavior: smooth;
+}
+
+/* removed unused: .content container helper */
+
+/* Header styles moved to header-footer.css */
+
+/* Header component styles moved to header-footer.css */
+
+/* Main Content */
+.main-content {
+  flex: 1;
+  padding: 2rem;
+  max-width: 1200px;
+  margin: 0 auto;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.page-title {
+  font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display", "SF Pro Text", "Helvetica Neue", Helvetica, Arial, sans-serif;
+  font-size: 2.5rem;
+  font-weight: 500;
+  color: #585858;
+  margin-bottom: 2rem;
+  text-align: center;
+}
+
+/* removed unused: .add-category-section */
+
+/* removed unused: .add-category-btn:hover */
+
+/* removed unused: .add-category-btn:active */
+
+.add-text {
+  font-weight: 500;
+}
+
+.add-question-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  background: #67add3;
+  color: #ffffff;
+  border: none;
+  border-radius: 8px;
+  padding: 0.75rem 1.6rem;
+  font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display", "SF Pro Text", "Helvetica Neue", Helvetica, Arial, sans-serif;
+  font-size: 0.98rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background 0.2s ease, box-shadow 0.2s ease, transform 0.1s ease;
+  box-shadow: 0 4px 12px rgba(103, 173, 211, 0.45);
+}
+
+.add-question-btn:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 6px 16px rgba(103, 173, 211, 0.6);
+  background: #4e96bf;
+}
+
+.qa-topbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1.25rem;
+  margin-bottom: 1.5rem;
+  flex-wrap: nowrap;
+}
+
+.qa-toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 0.75rem;
+  flex: 1 1 auto;
+}
+
+.pill-filter {
+  display: inline-flex;
+  padding: 0.15rem;
+  background: #ffffff;
+  border-radius: 8px;
+  border: 1px solid rgba(148, 163, 184, 0.5);
+}
+
+.pill {
+  border-radius: 6px;
+  padding: 0.35rem 0.9rem;
+  font-size: 0.9rem;
+  color: #4b5563;
+  background: transparent;
+  transition: background 0.2s ease, color 0.2s ease;
+}
+
+.pill.active {
+  background: #67add3;
+  color: #ffffff;
+}
+
+/* Высота строки как у поиска — используется для выравнивания блоков */
+:root {
+  --control-row-height: 2.5rem;
+}
+
+.search {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  min-width: 260px;
+  max-width: 360px;
+  width: 100%;
+  height: var(--control-row-height);
+  background: #ffffff;
+  border-radius: 8px;
+  border: 1px solid rgba(148, 163, 184, 0.8);
+  padding: 0 0.8rem;
+  box-sizing: border-box;
+}
+
+.search-icon {
+  font-size: 0.9rem;
+  color: #98a2b3;
+  margin-right: 0.35rem;
+}
+
+.search-input {
+  border: none;
+  outline: none;
+  width: 100%;
+  height: 100%;
+  font-size: 0.95rem;
+  background: transparent;
+  padding: 0;
+}
+
+.search-input::placeholder {
+  color: #b0b8c3;
+}
+
+.dept {
+  display: inline-flex;
+  align-items: center;
+}
+
+.dept-input {
+  min-width: 160px;
+  max-width: 220px;
+  width: 100%;
+  height: var(--control-row-height);
+  border-radius: 8px;
+  border: 1px solid rgba(148, 163, 184, 0.6);
+  padding: 0 0.7rem;
+  font-size: 0.9rem;
+  box-sizing: border-box;
+}
+
+.dept-input::placeholder {
+  color: #b0b8c3;
+}
+
+/* Modal styles */
+.modal-overlay {
+  display: none;
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: rgba(0, 0, 0, 0.5);
+  backdrop-filter: blur(4px);
+  z-index: 10000;
+  align-items: center;
+  justify-content: center;
+  padding: 1rem;
+  animation: fadeIn 0.2s ease;
+}
+
+.modal-overlay[style*="flex"] {
+  display: flex !important;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+.modal-container {
+  background: #ffffff;
+  border-radius: 16px;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+  max-width: 600px;
+  width: 100%;
+  max-height: 90vh;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  animation: slideUp 0.3s ease;
+  position: relative;
+}
+
+@keyframes slideUp {
+  from { transform: translateY(20px); opacity: 0; }
+  to { transform: translateY(0); opacity: 1; }
+}
+
+.modal-header { display: flex; align-items: center; justify-content: space-between; padding: 1.5rem 2rem; border-bottom: 1px solid #e5e5e5; flex-shrink: 0; }
+.modal-title { font-size: 1.5rem; font-weight: 600; color: #242627; margin: 0; }
+.modal-close { background: none; border: none; cursor: pointer; padding: 0.25rem; color: #666; }
+.modal-body { padding: 1.5rem 2rem; overflow-y: auto; }
+.modal-footer { display: flex; justify-content: flex-end; gap: 0.75rem; padding: 1rem 2rem; border-top: 1px solid #e5e5e5; }
+.form-group { margin-bottom: 1rem; }
+.form-label { display: block; font-weight: 600; color: #333; margin-bottom: 0.35rem; }
+.form-input, .form-textarea { width: 100%; padding: 0.6rem 0.75rem; border: 1px solid #ccc; border-radius: 8px; box-sizing: border-box; }
+.form-textarea { min-height: 100px; resize: vertical; }
+.btn-cancel { padding: 0.5rem 1rem; border: 1px solid #ccc; border-radius: 8px; background: #fff; cursor: pointer; }
+.btn-submit { padding: 0.5rem 1rem; border-radius: 8px; background: #67add3; color: #fff; border: none; cursor: pointer; }
+
+.file-upload-row {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 0.5rem;
+  align-items: center;
+}
+
+.file-input-hidden {
+  display: none;
+}
+
+.file-upload-btn {
+  width: 2.25rem;
+  height: 2.25rem;
+  border-radius: 999px;
+  border: none;
+  background: #67add3;
+  cursor: pointer;
+  position: relative;
+}
+
+.file-upload-btn::before {
+  content: "📎";
+  color: #fff;
+  font-size: 1.1rem;
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.file-upload-row-item {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.5rem;
+  margin-bottom: 0.5rem;
+}
+.file-upload-name-label {
+  font-size: 0.9rem;
+  color: #555;
+  flex: 0 0 auto;
+  max-width: 50%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.file-display-name {
+  flex: 1;
+  min-width: 140px;
+}
+
+/* Courses Grid */
+.courses-grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 4rem;
+  margin-bottom: 3rem;
+  margin-top: 2rem;
+  justify-items: stretch; /* вернуть прежнее поведение ширины */
+  max-width: 100%;
+}
+
+.course-card {
+  background-color: rgba(248, 250, 252, 1);
+  border-radius: 18px;
+  min-height: 0;
+  padding: 1.1rem 1.2rem;
+  box-sizing: border-box;
+  transition: transform 0.2s ease, box-shadow 0.25s ease, background 0.25s ease;
+  cursor: default;
+  display: flex;
+  flex-direction: column;
+  align-content: stretch;
+  width: 100%;
+  border: 1px solid rgba(148, 163, 184, 0.28);
+}
+
+.course-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 14px 30px rgba(15, 23, 42, 0.12);
+  background-color: #ffffff;
+}
+
+.card-content {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  width: 100%;
+  padding: 0;
+}
+
+.card-header {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  padding: 0.2rem 0.1rem 0.4rem;
+  border-bottom: 1px solid rgba(148, 163, 184, 0.24);
+}
+
+.card-title {
+  margin: 0;
+  font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display", "SF Pro Text", "Helvetica Neue", Helvetica, Arial, sans-serif;
+  font-size: 1rem;
+  font-weight: 600;
+  color: #111827;
+  word-break: break-word;
+  overflow-wrap: anywhere;
+}
+
+.qa-card__meta {
+  font-size: 0.85rem;
+  color: #6b7280;
+  word-break: break-word;
+  overflow-wrap: anywhere;
+}
+
+.card-title-answer {
+  margin-top: 1.25rem;
+  margin-bottom: 0.5rem;
+  font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display", "SF Pro Text", "Helvetica Neue", Helvetica, Arial, sans-serif;
+  font-size: 1.25rem;
+  font-weight: 600;
+  color: #494949;
+  align-self: flex-start;
+}
+
+.card-main {
+  flex: 1;
+  padding: 1rem 0;
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-start;
+  align-items: flex-start;
+  background: transparent;
+  border-radius: 0;
+  width: 100%;
+}
+
+.qa-card__text {
+  font-size: 0.95rem;
+  color: #374151;
+  white-space: pre-wrap;
+  word-break: break-word;
+  overflow-wrap: anywhere;
+}
+
+.card-main h1 {
+  color: #333;
+  font-weight: 500;
+  font-size: 25px;
+  letter-spacing: 2px;
+}
+
+/* Tags and notes (bottom controls) */
+.tags-container {
+  width: 100%;
+  display: flex;
+  align-items: flex-start;
+  gap: 0.75rem 1rem;
+  padding: 0.6rem 0.75rem;
+  margin-top: 0.6rem;
+  margin-bottom: 0.6rem;
+  background: #f1f7fb;
+  border-radius: 10px;
+  border: 1px solid rgba(103, 173, 211, 0.4);
+}
+
+.tags-label {
+  flex: 0 0 auto;
+  font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display", "SF Pro Text", "Helvetica Neue", Helvetica, Arial, sans-serif;
+  font-weight: 600;
+  color: #585858;
+  margin-top: 0.25rem;
+}
+
+.tags-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+.main-p {
+  margin-bottom: 10px;
+}
+
+.attach-btn {
+  margin-left: auto;
+  align-self: flex-start;
+  display: inline-flex;
+  align-items: center;
+  padding: 0.45rem 0.8rem;
+  background: #67add3;
+  color: #fff;
+  border-radius: 8px;
+  font-size: 0.95rem;
+  cursor: pointer;
+  transition: background 0.2s ease;
+  margin-right: 10px;
+}
+
+.attach-btn:hover {
+  background: #6695af;
+}
+
+.file-input {
+  display: none;
+}
+
+.tag {
+  display: inline-flex;
+  align-items: center;
+  padding: 0.5rem 0.6rem;
+  background: rgba(98, 147, 174, 0.12);
+  color: #3b3b3b;
+  border: 1px solid rgba(98, 147, 174, 0.3);
+  border-radius: 999px;
+  font-size: 0.9rem;
+  overflow-wrap: anywhere;
+  margin-left: 5px;
+  margin-top: 5px;
+  word-break: break-word;
+}
+
+.tag-clickable {
+  cursor: pointer;
+  appearance: none;
+  -webkit-appearance: none;
+  border: 1px solid rgba(98, 147, 174, 0.3);
+}
+
+.tag-clickable:hover {
+  background: rgba(98, 147, 174, 0.18);
+}
+
+.tag-clickable:focus-visible {
+  outline: 2px solid rgba(103, 173, 211, 0.6);
+  outline-offset: 2px;
+}
+
+.notes-input {
+  width: 100%;
+  display: block;
+  box-sizing: border-box;
+  margin: 0;
+  min-height: var(--control-row-height);
+  padding: 0 1rem;
+  line-height: 1.4;
+  border: 1px solid rgba(0, 0, 0, 0.15);
+  border-radius: 8px;
+  outline: none;
+  font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display", "SF Pro Text", "Helvetica Neue", Helvetica, Arial, sans-serif;
+  font-size: 0.95rem;
+  color: #333;
+  background: #fff;
+  resize: none;
+  overflow: hidden;
+  vertical-align: middle;
+}
+
+.notes-input:focus-visible {
+  outline: none;
+}
+
+.notes-wrapper {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  align-items: center;
+  gap: 0.6rem;
+  margin-top: 0.6rem;
+  min-height: var(--control-row-height);
+}
+
+.notes-actions {
+  position: static;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+}
+
+.notes-actions .attach-btn {
+  width: var(--control-row-height);
+  height: var(--control-row-height);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  background: #67add3;
+  color: #fff;
+  border-radius: 8px;
+  user-select: none;
+}
+
+.send-btn {
+  width: var(--control-row-height);
+  height: var(--control-row-height);
+  border-radius: 8px;
+  background: #67add3;
+  color: #fff;
+  border: none;
+  cursor: pointer;
+}
+
+.attach-icon::before {
+  content: "📎";
+  font-size: 1rem;
+}
+
+.send-icon::before {
+  content: "➤";
+  font-size: 0.9rem;
+}
+
+.send-btn:hover,
+.notes-actions .attach-btn:hover {
+  background: #6695af;
+}
+
+.answers-list {
+  margin-top: 0.5rem;
+  margin-bottom: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.answer-item {
+  padding: 0.75rem 1rem;
+  border: 1px solid rgba(0,0,0,0.15);
+  border-radius: 12px;
+  background: #f5f7f9; /* немного темнее textarea */
+  color: #333;
+  line-height: 1.4;
+  min-width: 0; /* важно для переноса длинных строк внутри flex-контейнера */
+}
+
+.answer-text {
+  max-width: 70ch; /* ограничение ширины текста ответов */
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  word-break: break-word;
+}
+
+.attached-files {
+  margin-top: 20px; /* отступ между полем ввода и контейнером файлов */
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px 12px; /* расстояние между прикреплёнными файлами */
+}
+
+.attached-file-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 10px;
+  background: #3a3a3a; /* темно-серый */
+  color: #fff;
+  border-radius: 10px;
+  font-size: 0.9rem;
+  margin-left: 5px;
+  margin-top: 5px;
+  margin-bottom: 10px;
+}
+
+.attached-file-chip a {
+  color: #aad4ff;
+  text-decoration: underline;
+}
+
+.notes-input:focus {
+  border-color: #76b7d7;
+  box-shadow: 0 0 0 3px rgba(118, 183, 215, 0.2);
+}
+
+/* Footer styles moved to header-footer.css */
+
+/* Responsive Design */
+@media (max-width: 1024px) {
+  .main-content {
+    padding: 1.5rem;
+  }
+
+  .page-title {
+    font-size: 2.5rem;
+  }
+
+  /* removed unused: .add-category-btn in 1024px */
+
+  .courses-grid {
+    grid-template-columns: 1fr;
+    gap: 1.5rem;
+  }
+}
+
+@media (max-width: 768px) {
+  .main-content {
+    padding: 1rem;
+  }
+
+  .page-title {
+    font-size: 2rem;
+    margin-bottom: 2rem;
+  }
+
+  /* removed unused: .add-category-btn in 768px */
+
+  /* removed unused: .add-icon in 768px */
+
+  .courses-grid {
+    grid-template-columns: 1fr;
+    gap: 1rem;
+  }
+
+  .course-card {
+    height: auto; /* растет по содержимому */
+  }
+}
+
+@media (max-width: 480px) {
+  .page-title {
+    font-size: 1.75rem;
+  }
+
+  /* removed unused: .add-category-btn in 480px */
+
+  /* removed unused: .add-icon in 480px */
+
+  .course-card {
+    height: auto; /* растет по содержимому */
+  }
+}

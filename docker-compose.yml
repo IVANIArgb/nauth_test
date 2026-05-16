@@ -1,0 +1,98 @@
+# Универсальный запуск (Linux / macOS / Windows Docker Desktop).
+# Сборка: docker compose build
+# Запуск:  docker compose up -d
+# Логи:    docker compose logs -f web
+#
+# Для монтирования рабочего стола Windows (как раньше): см. docker-compose.windows.yml
+#   docker compose -f docker-compose.yml -f docker-compose.windows.yml up -d
+#
+# Переменные: см. env.example → скопируйте в .env (кратко: docker.env.example)
+# Отладка без Gunicorn: docker compose -f docker-compose.yml -f docker-compose.dev.yml up
+#
+# Kerberos + AD (LDAP) в контейнере:
+#   scripts\init_kerberos_docker.ps1  или  scripts/init_kerberos_docker.sh
+#   kerberos/env.kerberos.example → фрагменты в .env, реальный http.keytab
+#   docker compose -f docker-compose.yml -f docker-compose.kerberos.yml --env-file .env up -d --build
+
+services:
+  web:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: learnsite:web
+    container_name: learnsite-web
+    ports:
+      - "${WEB_PORT:-8000}:8000"
+    environment:
+      DOCKER: "1"
+      FLASK_ENV: ${FLASK_ENV:-development}
+      HOST: "0.0.0.0"
+      PORT: "8000"
+      SECRET_KEY: ${SECRET_KEY:-learnsite-docker-dev-key-not-for-production}
+      DATABASE_URL: sqlite:////app/database/users_courses.db
+      CONTENT_ROOT_DIR: /app/categories-data
+      BACKUP_DIR: /app/backups
+      BACKUP_RETENTION_DAYS: "14"
+      BACKUP_INCLUDE_DB: "true"
+      BACKUP_ON_CONTENT_ROOT_CHANGE: "true"
+      TEST_MODE: ${TEST_MODE:-false}
+      # В контейнере без Kerberos/прокси иначе все остаются guest; роли — из БД (не как TEST_MODE).
+      DOCKER_AUTH_FALLBACK: ${DOCKER_AUTH_FALLBACK:-true}
+      DOCKER_DEFAULT_USER: ${DOCKER_DEFAULT_USER:-testadmin}
+      TRUST_REMOTE_USER: ${TRUST_REMOTE_USER:-false}
+      REMOTE_USER_HEADERS: ${REMOTE_USER_HEADERS:-X-Remote-User,X-Forwarded-User,Remote-User,Cf-Access-Authenticated-User-Email}
+      TRUST_REMOTE_USER_CONFIRM: ${TRUST_REMOTE_USER_CONFIRM:-false}
+      ALLOW_INSECURE_NEGOTIATE_HEURISTIC: ${ALLOW_INSECURE_NEGOTIATE_HEURISTIC:-false}
+      KERBEROS_GSSAPI_ENABLED: ${KERBEROS_GSSAPI_ENABLED:-false}
+      RUN_WITH_GUNICORN: "true"
+      GUNICORN_WORKERS: ${GUNICORN_WORKERS:-2}
+      KERBEROS_AUTH_ENABLED: ${KERBEROS_AUTH_ENABLED:-true}
+      KERBEROS_SERVICE_NAME: HTTP
+      KERBEROS_REALM: EXAMPLE.COM
+      LOG_LEVEL: ${LOG_LEVEL:-DEBUG}
+      DB_SEED_ON_START: ${DB_SEED_ON_START:-false}
+      DB_RECREATE_ON_START: ${DB_RECREATE_ON_START:-false}
+      # Команды терминала: в dev по умолчанию включены (в TEST_MODE тоже доступны)
+      TERMINAL_ROLE_COMMANDS_ENABLED: ${TERMINAL_ROLE_COMMANDS_ENABLED:-true}
+      # Предохранители production (не рекомендуется включать без понимания)
+      ALLOW_TERMINAL_IN_PROD: ${ALLOW_TERMINAL_IN_PROD:-false}
+
+      # Root-test мод: любой запрос без trusted proxy будет считаться пользователем "root"
+      # (делает тесты проще, но отключен по умолчанию).
+      ROOT_TEST_AUTH_ENABLED: ${ROOT_TEST_AUTH_ENABLED:-false}
+      ROOT_TEST_USERNAME: ${ROOT_TEST_USERNAME:-root}
+      ROOT_TEST_FORCE_ROLE: ${ROOT_TEST_FORCE_ROLE:-}
+
+      # Cookie security / security headers
+      SESSION_COOKIE_SECURE: ${SESSION_COOKIE_SECURE:-false}
+      SESSION_COOKIE_SAMESITE: ${SESSION_COOKIE_SAMESITE:-Lax}
+      SECURITY_HEADERS_ENABLED: ${SECURITY_HEADERS_ENABLED:-true}
+      SECURITY_HSTS_ENABLED: ${SECURITY_HSTS_ENABLED:-false}
+      SECURITY_HSTS_MAX_AGE: ${SECURITY_HSTS_MAX_AGE:-15552000}
+      SECURITY_HSTS_INCLUDE_SUBDOMAINS: ${SECURITY_HSTS_INCLUDE_SUBDOMAINS:-false}
+      SECURITY_HSTS_PRELOAD: ${SECURITY_HSTS_PRELOAD:-false}
+      CSP_ENABLED: ${CSP_ENABLED:-true}
+      CSP_REPORT_ONLY: ${CSP_REPORT_ONLY:-true}
+      CSP_POLICY: "${CSP_POLICY:-default-src 'self'; base-uri 'self'; object-src 'none'; frame-ancestors 'self'; img-src 'self' data: blob:; font-src 'self' data:; style-src 'self' 'unsafe-inline'; script-src 'self' 'unsafe-inline'; connect-src 'self';}"
+    volumes:
+      - learnsite_db:/app/database
+      - learnsite_content:/app/categories-data
+      - learnsite_backups:/app/backups
+    healthcheck:
+      test:
+        [
+          "CMD",
+          "python",
+          "-c",
+          "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/healthz', timeout=5).read()",
+        ]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 45s
+    restart: unless-stopped
+
+volumes:
+  learnsite_db:
+  learnsite_content:
+  learnsite_backups:

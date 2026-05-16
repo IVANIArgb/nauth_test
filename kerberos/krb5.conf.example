@@ -1,0 +1,26 @@
+# Скопируйте в krb5.conf и подставьте свой REALM и KDC (контроллер домена).
+# Замените EXAMPLE.COM и имена хостов на свои.
+
+[libdefaults]
+    default_realm = EXAMPLE.COM
+    dns_lookup_realm = true
+    dns_lookup_kdc = true
+    rdns = false
+    ticket_lifetime = 24h
+    renew_lifetime = 7d
+    forwardable = true
+    default_ccache_name = FILE:/tmp/krb5cc_%{uid}
+
+[realms]
+    EXAMPLE.COM = {
+        kdc = dc01.example.com:88
+        admin_server = dc01.example.com:749
+        default_domain = example.com
+    }
+
+[domain_realm]
+    .example.com = EXAMPLE.COM
+    example.com = EXAMPLE.COM
+
+[logging]
+    default = FILE:/tmp/krb5.log

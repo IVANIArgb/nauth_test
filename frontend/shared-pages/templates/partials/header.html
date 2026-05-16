@@ -1,0 +1,61 @@
+<header class="header">
+  <div class="logo-group">
+    <div class="logo">
+      <div class="letters-group">
+        <img class="logotype" src="/main-pg/img/лого.svg?v=2" alt="L letter" />
+      </div>
+    </div>
+    <div class="labels">
+      <h1 class="site-name">Образовательный</h1>
+      <h2 class="site-subtitle">портал ГТНГ</h2>
+      {% if role == 'super_admin' %}
+      <span class="user-label user-label--super">super admin</span>
+      {% elif role == 'admin' %}
+      <span class="user-label">admin</span>
+      {% else %}
+      <span class="user-label">{{ role or 'user' }}</span>
+      {% endif %}
+    </div>
+  </div>
+  <nav class="navigation">
+    <ul>
+      <li><a href="/main">главная</a></li>
+      <li><a href="/terminal">терминал</a></li>
+      <li class="nav-item nav-item--questions">
+        <a href="/questions" class="nav-link nav-link--questions">вопросы</a>
+        {% if role == 'admin' or role == 'super_admin' %}
+        <span class="nav-badge" id="questions-unanswered-badge" style="display:none;"></span>
+        {% endif %}
+      </li>
+      <li class="nav-item nav-item--news">
+        <a href="#" class="nav-link nav-link--news" id="news-open-btn">новости</a>
+        <span class="nav-badge nav-badge--dot" id="news-unread-badge" style="display:none;"></span>
+      </li>
+      {% if role == 'admin' or role == 'super_admin' %}
+      <li><a href="/all-categories-pg">база знаний</a></li>
+      <li><a href="/users-info">пользователи</a></li>
+      <li><a href="/tests-analytics-pg">тесты</a></li>
+      <li><a href="/bin">корзина</a></li>
+      {% else %}
+      <li><a href="/all-categories-pg">база знаний</a></li>
+      <li><a href="/user-profile-pg">моя активность</a></li>
+      <li><a href="/tests-analytics-pg">тесты</a></li>
+      {% endif %}
+      {% if real_role in ['admin', 'super_admin'] %}
+      <li class="view-switcher-item">
+        {% if view_mode == 'user' %}
+        <a href="/ui/switch-view?mode=admin" class="view-switcher-btn" title="Вернуться в режим администратора">режим админа</a>
+        {% else %}
+        <a href="/ui/switch-view?mode=user" class="view-switcher-btn" title="Режим пользователя">режим пользователя</a>
+        {% endif %}
+      </li>
+      {% endif %}
+    </ul>
+  </nav>
+  <div class="user-info">
+    <span class="user-name">{{ display_name or username or 'Пользователь' }}</span>
+    <div class="user-icon">
+      <img src="/main-pg/img/vector.svg?v=2" alt="User icon" />
+    </div>
+  </div>
+</header>

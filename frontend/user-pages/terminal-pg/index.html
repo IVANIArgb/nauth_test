@@ -1,0 +1,65 @@
+<!DOCTYPE html>
+<html lang="ru">
+  <head>
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta charset="utf-8" />
+    <title>Терминал - LearnSite</title>
+    <link rel="stylesheet" href="/main-pg/globals.css" />
+    <link rel="stylesheet" href="/main-pg/styleguide.css" />
+    <link rel="stylesheet" href="/templates/css/header-footer.css" />
+    <link rel="stylesheet" href="/templates/css/custom-modal.css" />
+    <link rel="stylesheet" href="/terminal-pg/style.css" />
+  </head>
+  <body>
+    <div class="screen">
+      <main class="main-content terminal-main">
+        <h1 class="page-title">Терминал</h1>
+        <div class="breadcrumbs">
+          <a href="/main-pg">Главная</a> &gt; <span>Терминал</span>
+        </div>
+        <p class="terminal-hint" id="terminal-status-msg" aria-live="polite"></p>
+        <div class="terminal-box">
+          <label class="sr-only" for="terminal-input">Команда</label>
+          <input
+            type="text"
+            id="terminal-input"
+            class="terminal-input"
+            placeholder="Введите команду…"
+            autocomplete="off"
+            spellcheck="false"
+          />
+          <button type="button" id="terminal-run-btn" class="terminal-run-btn">Выполнить</button>
+        </div>
+        <p class="terminal-help terminal-help--intro">
+          Введите <strong>название команды</strong> в поле выше и нажмите <strong>«Выполнить»</strong> (клавиша Enter не запускает команду).
+        </p>
+        <section class="terminal-commands" aria-labelledby="terminal-cmd-list-title">
+          <h2 id="terminal-cmd-list-title" class="terminal-commands-title">Доступные команды</h2>
+          <dl class="terminal-commands-list">
+            <div class="terminal-commands-row">
+              <dt><code>change-role-admin</code></dt>
+              <dd>Роль admin в БД для текущего пользователя</dd>
+            </div>
+            <div class="terminal-commands-row">
+              <dt><code>change-role-super-admin</code></dt>
+              <dd>Роль super_admin в БД</dd>
+            </div>
+            <div class="terminal-commands-row">
+              <dt><code>seed-test-data</code></dt>
+              <dd>Тестовые категории, курсы и уроки (как <code>python run.py seed</code>)</dd>
+            </div>
+            <div class="terminal-commands-row">
+              <dt><code>show-settings</code></dt>
+              <dd>Показать FLASK_ENV, TEST_MODE, пути контента и др. (без секретов)</dd>
+            </div>
+            <div class="terminal-commands-row">
+              <dt><code>list-commands</code></dt>
+              <dd>Показать этот же список в окне сообщения</dd>
+            </div>
+          </dl>
+        </section>
+      </main>
+    </div>
+    <script src="/templates/js/terminal-page.js"></script>
+  </body>
+</html>

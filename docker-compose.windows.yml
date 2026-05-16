@@ -1,0 +1,17 @@
+# Дополнение для Windows: монтирование диска C: (контент с хоста).
+# Запуск:
+#   docker compose -f docker-compose.yml -f docker-compose.windows.yml up -d
+#
+# Список volumes объединяется с docker-compose.yml (добавляется том к Desktop).
+# Бэкапы остаются в именованном томе learnsite_backups из основного файла.
+
+services:
+  web:
+    volumes:
+      # Монтируем диски C: и D: внутрь контейнера, чтобы можно было выбрать ЛЮБУЮ
+      # директорию на C:\ или D:\ как CONTENT_ROOT_DIR.
+      - "C:/:/host/C"
+      - "D:/:/host/D"
+    environment:
+      # Значение по умолчанию (можно поменять через UI) — папка на C:
+      CONTENT_ROOT_DIR: /host/C/Users/Пользователь/Desktop/learning-content

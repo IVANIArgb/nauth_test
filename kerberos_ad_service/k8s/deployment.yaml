@@ -1,0 +1,64 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: kerberos-sso
+  namespace: kerberos-sso
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: kerberos-sso
+  template:
+    metadata:
+      labels:
+        app: kerberos-sso
+    spec:
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 999
+        runAsGroup: 999
+        fsGroup: 999
+      containers:
+        - name: kerberos-sso
+          image: ghcr.io/your-org/kerberos-sso:latest
+          imagePullPolicy: Always
+          envFrom:
+            - configMapRef:
+                name: kerberos-sso-config
+          env:
+            - name: KERBEROS_KEYTAB
+              value: /run/secrets/service.keytab
+          ports:
+            - containerPort: 5000
+          volumeMounts:
+            - name: kerberos-secrets
+              mountPath: /run/secrets
+              readOnly: true
+            - name: app-db
+              mountPath: /app
+          readinessProbe:
+            httpGet:
+              path: /health
+              port: 5000
+            initialDelaySeconds: 15
+            periodSeconds: 10
+          livenessProbe:
+            httpGet:
+              path: /health
+              port: 5000
+            initialDelaySeconds: 30
+            periodSeconds: 20
+          resources:
+            requests:
+              cpu: "100m"
+              memory: "128Mi"
+            limits:
+              cpu: "500m"
+              memory: "512Mi"
+      volumes:
+        - name: kerberos-secrets
+          secret:
+            secretName: kerberos-sso-secrets
+            defaultMode: 0400
+        - name: app-db
+          emptyDir: {}

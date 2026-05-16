@@ -1,0 +1,27 @@
+# Шаблон для nginx:alpine (docker-entrypoint envsubst).
+# SSO_DEFAULT_USER — логин после «Kerberos» на границе (в dev задаётся в .env).
+# Клиентский X-Remote-User не пробрасывается — только значение с прокси.
+
+upstream learnsite_web {
+    server web:8000;
+}
+
+server {
+    listen 80;
+    server_name _;
+
+    client_max_body_size 1024m;
+
+    location / {
+        proxy_pass http://learnsite_web;
+        proxy_http_version 1.1;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+        proxy_set_header X-Remote-User "${SSO_DEFAULT_USER}";
+        proxy_set_header X-Remote-User-B64 "${SSO_DEFAULT_USER_B64}";
+        proxy_read_timeout 300s;
+        proxy_connect_timeout 30s;
+    }
+}

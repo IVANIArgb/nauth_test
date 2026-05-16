@@ -1,0 +1,70 @@
+services:
+  kerberos-sso:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: kerberos-sso
+    environment:
+      APP_ENV: ${APP_ENV:-prod}
+      HOST: 0.0.0.0
+      PORT: 5000
+      DEBUG: "false"
+      SPN_HOSTNAME: ${SPN_HOSTNAME:-app.example.com}
+      KERBEROS_SERVICE_NAME: ${KERBEROS_SERVICE_NAME:-HTTP}
+      KERBEROS_REALM: ${KERBEROS_REALM:-EXAMPLE.COM}
+      KERBEROS_KEYTAB: /run/secrets/service_keytab
+      KRB5_CONFIG: /run/secrets/krb5.conf
+      LDAP_URI: ${LDAP_URI:-ldap://dc01.example.com}
+      LDAP_BASE_DN: ${LDAP_BASE_DN:-DC=example,DC=com}
+      LDAP_RETRY_ATTEMPTS: ${LDAP_RETRY_ATTEMPTS:-3}
+      DATABASE_URL: ${DATABASE_URL:-sqlite:////app/users.db}
+      LOG_LEVEL: ${LOG_LEVEL:-INFO}
+      RATE_LIMIT_DEFAULT: ${RATE_LIMIT_DEFAULT:-30 per minute}
+      RATE_LIMIT_AUTH: ${RATE_LIMIT_AUTH:-10 per minute}
+      RATE_LIMIT_STORAGE_URI: ${RATE_LIMIT_STORAGE_URI:-redis://redis:6379/0}
+      PREFLIGHT_ENABLED: ${PREFLIGHT_ENABLED:-true}
+      PREFLIGHT_KINIT_ENABLED: ${PREFLIGHT_KINIT_ENABLED:-true}
+    ports:
+      - "5000:5000"
+    depends_on:
+      - redis
+    secrets:
+      - source: service_keytab
+        target: service_keytab
+        uid: "999"
+        gid: "999"
+        mode: 0400
+      - source: krb5_conf
+        target: krb5.conf
+        uid: "999"
+        gid: "999"
+        mode: 0444
+    volumes:
+      - ./users.db:/app/users.db
+    restart: unless-stopped
+
+  redis:
+    image: redis:7-alpine
+    container_name: kerberos-redis
+    command: ["redis-server", "--save", "", "--appendonly", "no"]
+    ports:
+      - "6379:6379"
+    restart: unless-stopped
+
+  postgres:
+    image: postgres:16-alpine
+    container_name: kerberos-postgres
+    environment:
+      POSTGRES_DB: kerberos
+      POSTGRES_USER: kerberos
+      POSTGRES_PASSWORD: kerberos
+    ports:
+      - "5432:5432"
+    profiles:
+      - postgres
+
+secrets:
+  service_keytab:
+    file: ./secrets/service.keytab
+  krb5_conf:
+    file: ./krb5.conf

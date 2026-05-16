@@ -1,0 +1,17 @@
+/* Styleguide для страницы корзины */
+
+.main-content {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 2rem;
+}
+
+.page-title {
+    font-size: 2rem;
+    color: #3259ac;
+    margin-bottom: 1rem;
+}
+
+
+
+

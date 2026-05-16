@@ -1,0 +1,12 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: kerberos-sso
+  namespace: __NAMESPACE__
+spec:
+  selector:
+    app: kerberos-sso
+  ports:
+    - name: http
+      port: 80
+      targetPort: 5000
