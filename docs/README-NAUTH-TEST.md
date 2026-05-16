@@ -7,13 +7,13 @@ Kerberos проверяется на **reverse-proxy** (nginx); Flask прини
 ## Одна команда (Windows, PowerShell)
 
 ```powershell
-irm https://raw.githubusercontent.com/ManakovIV/nauth_test/master/scripts/install-nauth_test.ps1 | iex
+irm https://raw.githubusercontent.com/ManakovIV/nauth_test/main/scripts/install-nauth_test.ps1 | iex
 ```
 
 Свой логин (кириллица):
 
 ```powershell
-$env:NAUTH_SSO_USER='Пользователь'; irm https://raw.githubusercontent.com/ManakovIV/nauth_test/master/scripts/install-nauth_test.ps1 | iex
+$env:NAUTH_SSO_USER='Пользователь'; irm https://raw.githubusercontent.com/ManakovIV/nauth_test/main/scripts/install-nauth_test.ps1 | iex
 ```
 
 ## Установка через git
@@ -27,7 +27,7 @@ cd $env:USERPROFILE\nauth_test
 ## Linux
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/ManakovIV/nauth_test/master/scripts/install-nauth_test.sh | bash
+curl -fsSL https://raw.githubusercontent.com/ManakovIV/nauth_test/main/scripts/install-nauth_test.sh | bash
 ```
 
 ## После установки
