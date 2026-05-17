@@ -4,16 +4,16 @@
   Установка nauth_test (LearningSite + SSO без keytab) на удалённый ПК.
 
 .EXAMPLE
-  irm https://raw.githubusercontent.com/IVANIArgh/nauth_test/main/scripts/install-nauth_test.ps1 | iex
+  irm https://raw.githubusercontent.com/IVANIArgb/nauth_test/main/scripts/install-nauth_test.ps1 | iex
 
 .EXAMPLE
-  $env:NAUTH_REPO='https://github.com/IVANIArgh/nauth_test.git'
+  $env:NAUTH_REPO='https://github.com/IVANIArgb/nauth_test.git'
   $env:NAUTH_SSO_USER='Пользователь'
   .\scripts\install-nauth_test.ps1
 #>
 $ErrorActionPreference = 'Stop'
 
-$RepoUrl = if ($env:NAUTH_REPO) { $env:NAUTH_REPO } else { 'https://github.com/IVANIArgh/nauth_test.git' }
+$RepoUrl = if ($env:NAUTH_REPO) { $env:NAUTH_REPO } else { 'https://github.com/IVANIArgb/nauth_test.git' }
 $InstallDir = if ($env:NAUTH_INSTALL_DIR) { $env:NAUTH_INSTALL_DIR } else { Join-Path $env:USERPROFILE 'nauth_test' }
 $SsoUser = if ($env:NAUTH_SSO_USER) { $env:NAUTH_SSO_USER } else { 'testadmin' }
 $WebPort = if ($env:NAUTH_WEB_PORT) { $env:NAUTH_WEB_PORT } else { '8080' }

@@ -1,25 +1,25 @@
 # nauth_test — SSO без keytab (установка на удалённый ПК)
 
-Репозиторий: **https://github.com/IVANIArgh/nauth_test**
+Репозиторий: **https://github.com/IVANIArgb/nauth_test**
 
 Kerberos проверяется на **reverse-proxy** (nginx); Flask принимает логин из `X-Remote-User` / `X-Remote-User-B64` (кириллица).
 
 ## Одна команда (Windows, PowerShell)
 
 ```powershell
-irm https://raw.githubusercontent.com/IVANIArgh/nauth_test/main/scripts/install-nauth_test.ps1 | iex
+irm https://raw.githubusercontent.com/IVANIArgb/nauth_test/main/scripts/install-nauth_test.ps1 | iex
 ```
 
 Свой логин (кириллица):
 
 ```powershell
-$env:NAUTH_SSO_USER='Пользователь'; irm https://raw.githubusercontent.com/IVANIArgh/nauth_test/main/scripts/install-nauth_test.ps1 | iex
+$env:NAUTH_SSO_USER='Пользователь'; irm https://raw.githubusercontent.com/IVANIArgb/nauth_test/main/scripts/install-nauth_test.ps1 | iex
 ```
 
 ## Установка через git
 
 ```powershell
-git clone https://github.com/IVANIArgh/nauth_test.git $env:USERPROFILE\nauth_test
+git clone https://github.com/IVANIArgb/nauth_test.git $env:USERPROFILE\nauth_test
 cd $env:USERPROFILE\nauth_test
 .\scripts\install-nauth_test.ps1
 ```
@@ -27,7 +27,7 @@ cd $env:USERPROFILE\nauth_test
 ## Linux
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/IVANIArgh/nauth_test/main/scripts/install-nauth_test.sh | bash
+curl -fsSL https://raw.githubusercontent.com/IVANIArgb/nauth_test/main/scripts/install-nauth_test.sh | bash
 ```
 
 ## После установки
