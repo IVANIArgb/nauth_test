@@ -4,17 +4,23 @@
 
 Kerberos проверяется на **reverse-proxy** (nginx); Flask принимает логин из `X-Remote-User` / `X-Remote-User-B64` (кириллица).
 
-## Одна команда (Windows, PowerShell)
+## Установка (Windows PowerShell)
+
+**Не используйте** `powershell -Command "$env:NAUTH_SSO_USER=..."` — внешняя оболочка ломает `$env` и кириллицу.
 
 ```powershell
+$env:NAUTH_SSO_USER = 'ManakovIV'
 irm https://raw.githubusercontent.com/IVANIArgb/nauth_test/main/scripts/install-nauth_test.ps1 | iex
 ```
 
-Свой логин (кириллица):
+Кириллица в логине — те же две строки в **этом же** окне PowerShell:
 
 ```powershell
-$env:NAUTH_SSO_USER='Пользователь'; irm https://raw.githubusercontent.com/IVANIArgb/nauth_test/main/scripts/install-nauth_test.ps1 | iex
+$env:NAUTH_SSO_USER = 'Пользователь'
+irm https://raw.githubusercontent.com/IVANIArgb/nauth_test/main/scripts/install-nauth_test.ps1 | iex
 ```
+
+Требуется **Docker Desktop** (проверка: `docker version`).
 
 ## Установка через git
 

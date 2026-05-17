@@ -1,8 +1,11 @@
-# Скопируйте и выполните на УДАЛЁННОМ ПК (PowerShell от администратора не обязателен).
-# Нужны: Git, Docker Desktop.
+# ========== УДАЛЁННЫЙ ПК: скопируйте в PowerShell (по порядку) ==========
+# Нужны: Git + Docker Desktop (docker version в консоли должен работать).
 
-# Логин SSO (латиница или кириллица) — измените при необходимости:
-$env:NAUTH_SSO_USER = 'testadmin'
+# 1) Ваш логин для SSO (латиница или кириллица):
+$env:NAUTH_SSO_USER = 'ManakovIV'
 
-# Установка:
-powershell -NoProfile -ExecutionPolicy Bypass -Command "[Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12; iex ((New-Object Net.WebClient).DownloadString('https://raw.githubusercontent.com/IVANIArgb/nauth_test/main/scripts/install-nauth_test.ps1'))"
+# 2) Установка (одна строка, БЕЗ вложенного powershell -Command):
+[Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12
+irm https://raw.githubusercontent.com/IVANIArgb/nauth_test/main/scripts/install-nauth_test.ps1 | iex
+
+# Проверка: http://localhost:8080/user/info-test

@@ -7,9 +7,9 @@
   irm https://raw.githubusercontent.com/IVANIArgb/nauth_test/main/scripts/install-nauth_test.ps1 | iex
 
 .EXAMPLE
-  $env:NAUTH_REPO='https://github.com/IVANIArgb/nauth_test.git'
-  $env:NAUTH_SSO_USER='Пользователь'
-  .\scripts\install-nauth_test.ps1
+  # На удалённом ПК — ДВЕ строки в этом же окне PowerShell (без вложенного powershell -Command):
+  $env:NAUTH_SSO_USER = 'ManakovIV'
+  irm https://raw.githubusercontent.com/IVANIArgb/nauth_test/main/scripts/install-nauth_test.ps1 | iex
 #>
 $ErrorActionPreference = 'Stop'
 
@@ -18,14 +18,19 @@ $InstallDir = if ($env:NAUTH_INSTALL_DIR) { $env:NAUTH_INSTALL_DIR } else { Join
 $SsoUser = if ($env:NAUTH_SSO_USER) { $env:NAUTH_SSO_USER } else { 'testadmin' }
 $WebPort = if ($env:NAUTH_WEB_PORT) { $env:NAUTH_WEB_PORT } else { '8080' }
 
-function Require-Command($name) {
+function Require-Command($name, [string]$Hint = '') {
     if (-not (Get-Command $name -ErrorAction SilentlyContinue)) {
-        throw "Не найдена команда '$name'. Установите её и повторите."
+        $msg = "Не найдена команда '$name'."
+        if ($Hint) { $msg += " $Hint" }
+        throw $msg
     }
 }
 
-Require-Command git
-Require-Command docker
+Require-Command git 'Установите Git: https://git-scm.com/download/win'
+Require-Command docker @'
+Установите Docker Desktop, перезагрузите ПК, убедитесь что "docker version" работает.
+Скачать: https://www.docker.com/products/docker-desktop/
+'@
 
 Write-Host "nauth_test: клонирование в $InstallDir"
 if (-not (Test-Path $InstallDir)) {
