@@ -2,7 +2,7 @@
 # Установка nauth_test на Linux: curl -fsSL .../install-nauth_test.sh | bash
 set -euo pipefail
 
-REPO_URL="${NAUTH_REPO:-https://github.com/ManakovIV/nauth_test.git}"
+REPO_URL="${NAUTH_REPO:-https://github.com/IVANIArgh/nauth_test.git}"
 INSTALL_DIR="${NAUTH_INSTALL_DIR:-$HOME/nauth_test}"
 SSO_USER="${NAUTH_SSO_USER:-testadmin}"
 WEB_PORT="${NAUTH_WEB_PORT:-8080}"

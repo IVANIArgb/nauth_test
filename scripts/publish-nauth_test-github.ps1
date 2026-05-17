@@ -3,7 +3,7 @@
 # 2) Запустите этот скрипт с вашим логином GitHub.
 
 param(
-    [string]$GithubUser = "ManakovIV",
+    [string]$GithubUser = "IVANIArgh",
     [string]$RepoName = "nauth_test"
 )
 
