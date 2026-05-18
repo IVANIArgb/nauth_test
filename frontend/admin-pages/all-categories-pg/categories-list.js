@@ -330,7 +330,8 @@ async function createCategory() {
         loadCategories();
     } catch (error) {
         console.error('Ошибка создания категории:', error);
-        showError('Не удалось создать категорию');
+        const msg = (error && error.message) ? String(error.message) : '';
+        showError(msg && msg !== 'Failed to fetch' ? msg : 'Не удалось создать категорию');
     }
 }
 

@@ -2,6 +2,7 @@
 Утилиты для синхронизации файловой структуры categories-data с базой данных.
 """
 
+import logging
 import os
 import json
 import shutil
@@ -13,6 +14,8 @@ from pathlib import Path
 # Базовый путь к legacy-папке categories-data внутри проекта
 _base_dir = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 LEGACY_CATEGORIES_DATA_PATH = os.path.join(_base_dir, "categories-data")
+
+logger = logging.getLogger(__name__)
 
 _OVERRIDE_FILE = os.path.join(_base_dir, ".content_root_dir_override")
 
@@ -65,22 +68,88 @@ def _get_env_root() -> str | None:
     return env_root
 
 
+def _categories_base_is_usable(path: str) -> bool:
+    """Проверка, что каталог можно создать/открыть и прочитать (нет WinError 5 и т.п.)."""
+    try:
+        p = Path(path)
+        p.mkdir(parents=True, exist_ok=True)
+        next(p.iterdir(), None)
+        return True
+    except OSError:
+        return False
+
+
 def get_base_categories_data_path() -> str:
     """Вернуть абсолютный путь к корневой папке categories-data."""
     # Явный override (в первую очередь для тестов через monkeypatch).
     # Должен иметь приоритет над переменными окружения, чтобы тесты были изолированы
     # и не зависели от локальной конфигурации разработчика.
     if BASE_CATEGORIES_DATA_PATH and BASE_CATEGORIES_DATA_PATH != LEGACY_CATEGORIES_DATA_PATH:
-        return os.path.abspath(os.path.expanduser(BASE_CATEGORIES_DATA_PATH))
-    env_root = _get_env_root()
-    if env_root:
-        return os.path.abspath(os.path.expanduser(env_root))
-    return os.path.abspath(os.path.expanduser(BASE_CATEGORIES_DATA_PATH))
+        candidate = os.path.abspath(os.path.expanduser(BASE_CATEGORIES_DATA_PATH))
+    else:
+        env_root = _get_env_root()
+        if env_root:
+            candidate = os.path.abspath(os.path.expanduser(env_root))
+        else:
+            candidate = os.path.abspath(os.path.expanduser(BASE_CATEGORIES_DATA_PATH))
+
+    legacy_abs = os.path.abspath(os.path.expanduser(LEGACY_CATEGORIES_DATA_PATH))
+
+    if _categories_base_is_usable(candidate):
+        return candidate
+
+    if candidate != legacy_abs:
+        logger.warning(
+            "Корень контента недоступен для текущего пользователя (%r). "
+            "Проверьте CONTENT_ROOT_DIR и права. Используется встроенная папка categories-data.",
+            candidate,
+        )
+    if not _categories_base_is_usable(legacy_abs):
+        raise PermissionError(
+            f"Нет доступа ни к CONTENT_ROOT_DIR ({candidate!r}), ни к {legacy_abs!r}"
+        )
+    return legacy_abs
 
 
 def is_external_content_root() -> bool:
-    """Возвращает True, если корень контента вынесен за пределы проекта (CONTENT_ROOT_DIR задан)."""
-    return bool(_get_env_root())
+    """
+    True, если фактически используется каталог вне встроенного categories-data проекта.
+
+    Учитывает откат get_base_categories_data_path() при недоступном CONTENT_ROOT_DIR
+    (иначе на корпоративном ПК с «чужим» путём из .env логика дубликатов/синка вела себя как для внешнего диска).
+    """
+    if not _get_env_root():
+        return False
+    try:
+        effective = os.path.normcase(os.path.abspath(get_base_categories_data_path()))
+    except OSError:
+        return False
+    legacy_abs = os.path.normcase(os.path.abspath(os.path.expanduser(LEGACY_CATEGORIES_DATA_PATH)))
+    return effective != legacy_abs
+
+
+def ensure_content_root_env_matches_process() -> None:
+    """
+    Убрать из os.environ недоступный CONTENT_ROOT_DIR (частая ошибка при копировании .env с другого ПК).
+
+    Файл .content_root_dir_override не трогаем — его правит только админ через API.
+    Вызывать после load_dotenv (например из run.py до create_app).
+    """
+    raw = (os.environ.get("CONTENT_ROOT_DIR") or "").strip()
+    if not raw:
+        return
+    candidate = os.path.abspath(os.path.expanduser(raw))
+    legacy_abs = os.path.abspath(os.path.expanduser(LEGACY_CATEGORIES_DATA_PATH))
+    if candidate == legacy_abs:
+        return
+    if _categories_base_is_usable(candidate):
+        return
+    os.environ.pop("CONTENT_ROOT_DIR", None)
+    logger.warning(
+        "CONTENT_ROOT_DIR из окружения недоступен процессу (%r) — переменная сброшена. "
+        "Задайте путь, доступный текущему пользователю Windows, или оставьте пустым для categories-data в проекте.",
+        raw,
+    )
 
 
 def _iter_category_dirs():

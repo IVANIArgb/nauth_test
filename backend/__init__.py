@@ -1,7 +1,9 @@
 from __future__ import annotations
 
 from typing import Any, Dict, Optional
+import logging
 import os
+import sys
 from pathlib import Path
 
 from flask import Flask
@@ -42,6 +44,15 @@ def create_app(env_or_config: Optional[str | Dict[str, Any]] = None) -> Flask:
     # Flask будет искать шаблоны в корневой папке site
     # Это позволит использовать пути типа "frontend/admin-pages/templates/base_static_page.html"
     site_root = os.path.abspath(os.path.join(os.path.dirname(__file__), os.pardir))
+
+    # Недоступный CONTENT_ROOT_DIR из .env (часто после копирования с другого ПК) — убрать из os.environ до конфига.
+    try:
+        from backend.utils.categories_data_sync import ensure_content_root_env_matches_process
+
+        ensure_content_root_env_matches_process()
+    except Exception:
+        pass
+
     app = Flask(__name__, template_folder=site_root)
 
     if isinstance(env_or_config, dict):
@@ -236,5 +247,28 @@ def create_app(env_or_config: Optional[str | Dict[str, Any]] = None) -> Flask:
     csrf.exempt(api_bp)
     
     register_routes(app)
+
+    def _log_deployment_profile() -> None:
+        """Один раз при старте: среда, контент, auth — чтобы корпоративный и домашний ПК было проще сравнить."""
+        try:
+            from backend.utils.categories_data_sync import get_base_categories_data_path
+
+            eff = get_base_categories_data_path()
+        except Exception as ex:
+            eff = f"(ошибка: {ex})"
+        log = logging.getLogger("learningsite.startup")
+        log.info(
+            "Старт: FLASK_ENV=%s platform=%s docker=%s | контент=%s | "
+            "TEST_MODE=%s TRUST_REMOTE_USER=%s KERBEROS_GSSAPI_ENABLED=%s",
+            (os.environ.get("FLASK_ENV") or "").strip() or "?",
+            sys.platform,
+            bool((os.environ.get("DOCKER") or "").strip()),
+            eff,
+            bool(app.config.get("TEST_MODE")),
+            bool(app.config.get("TRUST_REMOTE_USER")),
+            bool(app.config.get("KERBEROS_GSSAPI_ENABLED")),
+        )
+
+    _log_deployment_profile()
 
     return app
