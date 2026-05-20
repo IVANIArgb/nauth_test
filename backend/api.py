@@ -268,7 +268,9 @@ def admin_content_root():
         })
 
     data = request.get_json(silent=True) or {}
-    raw_path = (data.get("path") or "").strip()
+    from backend.utils.categories_data_sync import _normalize_content_root_path
+
+    raw_path = _normalize_content_root_path(data.get("path"))
     if not raw_path:
         return jsonify({"error": "Путь к папке контента обязателен"}), 400
 
@@ -353,7 +355,7 @@ def admin_content_root():
         os.environ["CONTENT_ROOT_DIR"] = new_root
         override_file = os.path.join(project_root, ".content_root_dir_override")
         try:
-            with open(override_file, "w", encoding="utf-8") as f:
+            with open(override_file, "w", encoding="utf-8", newline="\n") as f:
                 f.write(new_root)
         except Exception:
             pass

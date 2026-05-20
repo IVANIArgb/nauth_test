@@ -24,19 +24,30 @@ _OVERRIDE_FILE = os.path.join(_base_dir, ".content_root_dir_override")
 # Если задан CONTENT_ROOT_DIR (или override-файл), он имеет приоритет.
 BASE_CATEGORIES_DATA_PATH = LEGACY_CATEGORIES_DATA_PATH
 
+
+def _normalize_content_root_path(raw: str | None) -> str:
+    """Убрать BOM/пробелы (часто в .content_root_dir_override после записи из Windows UI)."""
+    if not raw:
+        return ""
+    s = str(raw).strip()
+    if s.startswith("\ufeff"):
+        s = s.lstrip("\ufeff").strip()
+    return s
+
+
 def _get_env_root() -> str | None:
     """CONTENT_ROOT_DIR (с приоритетом файла-override, чтобы работало в multi-worker)."""
     # Файл-override нужен, чтобы изменения применялись сразу для всех gunicorn воркеров.
     try:
         if os.path.exists(_OVERRIDE_FILE):
-            with open(_OVERRIDE_FILE, "r", encoding="utf-8") as f:
-                v = (f.read() or "").strip()
+            with open(_OVERRIDE_FILE, "r", encoding="utf-8-sig") as f:
+                v = _normalize_content_root_path(f.read())
                 if v:
                     return v
     except Exception:
         pass
 
-    env_root = os.environ.get("CONTENT_ROOT_DIR")
+    env_root = _normalize_content_root_path(os.environ.get("CONTENT_ROOT_DIR"))
     if not env_root:
         return None
 
@@ -149,8 +160,8 @@ def _clear_unusable_content_root_override() -> bool:
     try:
         if not os.path.exists(_OVERRIDE_FILE):
             return False
-        with open(_OVERRIDE_FILE, "r", encoding="utf-8") as f:
-            raw = (f.read() or "").strip()
+        with open(_OVERRIDE_FILE, "r", encoding="utf-8-sig") as f:
+            raw = _normalize_content_root_path(f.read())
         if not raw:
             os.remove(_OVERRIDE_FILE)
             return True
@@ -180,7 +191,7 @@ def ensure_content_root_env_matches_process() -> None:
 
     _clear_unusable_content_root_override()
 
-    raw = (os.environ.get("CONTENT_ROOT_DIR") or "").strip()
+    raw = _normalize_content_root_path(os.environ.get("CONTENT_ROOT_DIR"))
     if raw:
         candidate = os.path.abspath(os.path.expanduser(raw))
         if candidate != legacy_abs and not _categories_base_is_usable(candidate):
@@ -197,8 +208,8 @@ def ensure_content_root_env_matches_process() -> None:
 
         ov = None
         if os.path.exists(_OVERRIDE_FILE):
-            with open(_OVERRIDE_FILE, "r", encoding="utf-8") as f:
-                ov = (f.read() or "").strip()
+            with open(_OVERRIDE_FILE, "r", encoding="utf-8-sig") as f:
+                ov = _normalize_content_root_path(f.read())
         agent_debug_log(
             "H1",
             "categories_data_sync.ensure_content_root_env_matches_process",

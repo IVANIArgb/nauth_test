@@ -41,7 +41,8 @@ if (Test-Path $envPath) {
             "CONTENT_ROOT_DIR="
         } else { $line }
     }
-    $out | Set-Content $envPath -Encoding UTF8
+    $utf8NoBom = New-Object System.Text.UTF8Encoding $false
+    [System.IO.File]::WriteAllLines($envPath, $out, $utf8NoBom)
     Write-Host "OK: в .env установлено CONTENT_ROOT_DIR=" -ForegroundColor Green
 } else {
     Write-Host "Нет .env — запустите setup-windows.bat" -ForegroundColor Yellow
