@@ -108,6 +108,19 @@ def get_base_categories_data_path() -> str:
         raise PermissionError(
             f"Нет доступа ни к CONTENT_ROOT_DIR ({candidate!r}), ни к {legacy_abs!r}"
         )
+    # #region agent log
+    try:
+        from backend.utils.agent_debug_log import agent_debug_log
+
+        agent_debug_log(
+            "H5",
+            "categories_data_sync.get_base_categories_data_path",
+            "fallback to legacy",
+            {"candidate": candidate, "legacy_abs": legacy_abs},
+        )
+    except Exception:
+        pass
+    # #endregion
     return legacy_abs
 
 
@@ -168,19 +181,45 @@ def ensure_content_root_env_matches_process() -> None:
     _clear_unusable_content_root_override()
 
     raw = (os.environ.get("CONTENT_ROOT_DIR") or "").strip()
-    if not raw:
-        return
-    candidate = os.path.abspath(os.path.expanduser(raw))
-    if candidate == legacy_abs:
-        return
-    if _categories_base_is_usable(candidate):
-        return
-    os.environ.pop("CONTENT_ROOT_DIR", None)
-    logger.warning(
-        "CONTENT_ROOT_DIR из окружения недоступен процессу (%r) — переменная сброшена. "
-        "Задайте путь, доступный текущему пользователю Windows, или оставьте пустым для categories-data в проекте.",
-        raw,
-    )
+    if raw:
+        candidate = os.path.abspath(os.path.expanduser(raw))
+        if candidate != legacy_abs and not _categories_base_is_usable(candidate):
+            os.environ.pop("CONTENT_ROOT_DIR", None)
+            logger.warning(
+                "CONTENT_ROOT_DIR из окружения недоступен процессу (%r) — переменная сброшена. "
+                "Задайте путь, доступный текущему пользователю Windows, или оставьте пустым для categories-data в проекте.",
+                raw,
+            )
+
+    # #region agent log
+    try:
+        from backend.utils.agent_debug_log import agent_debug_log
+
+        ov = None
+        if os.path.exists(_OVERRIDE_FILE):
+            with open(_OVERRIDE_FILE, "r", encoding="utf-8") as f:
+                ov = (f.read() or "").strip()
+        agent_debug_log(
+            "H1",
+            "categories_data_sync.ensure_content_root_env_matches_process",
+            "content roots after sanitize",
+            {
+                "override_file": ov,
+                "env_CONTENT_ROOT_DIR": os.environ.get("CONTENT_ROOT_DIR"),
+                "resolved_base": get_base_categories_data_path(),
+                "cwd": os.getcwd(),
+            },
+        )
+    except Exception as ex:
+        from backend.utils.agent_debug_log import agent_debug_log
+
+        agent_debug_log(
+            "H1",
+            "categories_data_sync.ensure_content_root_env_matches_process",
+            "sanitize log failed",
+            {"error": str(ex)},
+        )
+    # #endregion
 
 
 def _iter_category_dirs():

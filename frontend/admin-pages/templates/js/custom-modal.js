@@ -5,6 +5,9 @@
  * Скрипт может подключаться дважды (base_static_page + страница) — повторный запуск пропускается.
  */
 (function () {
+    // #region agent log
+    fetch('http://127.0.0.1:7923/ingest/8751328b-aa16-4b31-857d-3ef737d9eaea',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'2fa264'},body:JSON.stringify({sessionId:'2fa264',hypothesisId:'H3',location:'custom-modal.js:IIFE',message:'custom-modal loaded',data:{alreadyLoaded:!!window.__learnSiteCustomModalLoaded,url:location.href},timestamp:Date.now(),runId:'run1'})}).catch(()=>{});
+    // #endregion
     if (window.__learnSiteCustomModalLoaded) {
         return;
     }
