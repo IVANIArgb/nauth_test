@@ -128,18 +128,49 @@ def is_external_content_root() -> bool:
     return effective != legacy_abs
 
 
+def _clear_unusable_content_root_override() -> bool:
+    """
+    Удалить .content_root_dir_override, если путь недоступен текущему процессу.
+    Этот файл важнее CONTENT_ROOT_DIR в .env — из‑за него часто остаётся C:\\Users\\Пользователь\\...
+    """
+    try:
+        if not os.path.exists(_OVERRIDE_FILE):
+            return False
+        with open(_OVERRIDE_FILE, "r", encoding="utf-8") as f:
+            raw = (f.read() or "").strip()
+        if not raw:
+            os.remove(_OVERRIDE_FILE)
+            return True
+        candidate = os.path.abspath(os.path.expanduser(raw))
+        legacy_abs = os.path.abspath(os.path.expanduser(LEGACY_CATEGORIES_DATA_PATH))
+        if candidate == legacy_abs or _categories_base_is_usable(candidate):
+            return False
+        os.remove(_OVERRIDE_FILE)
+        logger.warning(
+            "Удалён недоступный .content_root_dir_override (%r). "
+            "Используется categories-data в проекте или CONTENT_ROOT_DIR из .env.",
+            raw,
+        )
+        return True
+    except OSError as ex:
+        logger.warning("Не удалось проверить/удалить .content_root_dir_override: %s", ex)
+        return False
+
+
 def ensure_content_root_env_matches_process() -> None:
     """
-    Убрать из os.environ недоступный CONTENT_ROOT_DIR (частая ошибка при копировании .env с другого ПК).
+    Убрать из окружения и override-файла недоступные пути контента (копирование .env с другого ПК).
 
-    Файл .content_root_dir_override не трогаем — его правит только админ через API.
-    Вызывать после load_dotenv (например из run.py до create_app).
+    Вызывать после load_dotenv (create_app).
     """
+    legacy_abs = os.path.abspath(os.path.expanduser(LEGACY_CATEGORIES_DATA_PATH))
+
+    _clear_unusable_content_root_override()
+
     raw = (os.environ.get("CONTENT_ROOT_DIR") or "").strip()
     if not raw:
         return
     candidate = os.path.abspath(os.path.expanduser(raw))
-    legacy_abs = os.path.abspath(os.path.expanduser(LEGACY_CATEGORIES_DATA_PATH))
     if candidate == legacy_abs:
         return
     if _categories_base_is_usable(candidate):

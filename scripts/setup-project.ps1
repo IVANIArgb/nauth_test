@@ -188,16 +188,15 @@ if (Test-Path $envFile) {
         Write-Host "SECRET_KEY в .env заменён на случайный (64 hex-символа)."
     }
 
+    $overrideFile = Join-Path $ProjectRoot ".content_root_dir_override"
+    if (Test-Path $overrideFile) {
+        Remove-Item -LiteralPath $overrideFile -Force
+        Write-Host "Удалён .content_root_dir_override (мог указывать на чужой профиль Windows)."
+    }
+
     if (-not ($env:NAUTH_SKIP_HOST_TUNING -eq "1")) {
         Set-EnvKey "DOCKER" "false"
-        # Пустой CONTENT_ROOT_DIR = встроенный categories-data (меньше проблем с правами на чужом профиле)
-        $hasContentRoot = $false
-        foreach ($line in (Get-Content $envFile -Encoding UTF8)) {
-            if ($line -match '^\s*CONTENT_ROOT_DIR\s*=') { $hasContentRoot = $true; break }
-        }
-        if (-not $hasContentRoot) {
-            Set-EnvKey "CONTENT_ROOT_DIR" ""
-        }
+        Set-EnvKey "CONTENT_ROOT_DIR" ""
     }
 }
 

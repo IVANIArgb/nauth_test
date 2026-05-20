@@ -223,6 +223,8 @@ class BaseConfig:
 class DevelopmentConfig(BaseConfig):
     DEBUG = True
     TESTING = False
+    # Иначе браузер держит /templates/js/*.js до 7 дней — после git pull кажется, что «ничего не изменилось».
+    SEND_FILE_MAX_AGE_DEFAULT = 0
 
 
 class TestingConfig(BaseConfig):

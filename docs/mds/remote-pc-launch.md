@@ -31,6 +31,17 @@ setup-windows.bat
 
 Логика в `scripts\setup-project.ps1`. После установки можно запускать **`run-server.bat`** (создаётся скриптом) или `python run.py`.
 
+### Если «всё сделал, но ошибки те же»
+
+Частая причина: файл **`.content_root_dir_override`** в корне проекта (важнее пустого `CONTENT_ROOT_DIR` в `.env`) — там остаётся `C:\Users\Пользователь\...`.
+
+```powershell
+cd C:\Users\ManakovIV\nauth_test
+.\scripts\fix-corporate-install.ps1
+```
+
+Затем **закройте** старое окно с `python run.py`, снова `.\run-server.bat`, в браузере **Ctrl+Shift+R**.
+
 ## Быстрый старт вручную (PowerShell)
 
 Из корня репозитория (папка с `run.py`):
