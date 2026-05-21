@@ -19,6 +19,8 @@ backend/users_courses.db
 
 # Database files (do not commit)
 database/*.db
+database/*.db-shm
+database/*.db-wal
 database/*.db.backup_*
 
 # OS / Editors
@@ -70,3 +72,8 @@ tests/reports/*.xml
 
 # Kerberos keytabs directory (secrets)
 kerberos/keytabs/
+
+# Agent / debug sessions (не коммитить)
+debug-*.log
+test-out.txt
+.content_root_dir_override

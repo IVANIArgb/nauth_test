@@ -22,8 +22,8 @@
 
 | Файл/папка | Примечание |
 |------------|------------|
-| `debug-2fa264.log` | Отладочная сессия агента; не коммитить |
-| `test-out.txt` | Временный вывод теста shell |
+| `debug-*.log` | Отладочная сессия агента; удалено, в `.gitignore` |
+| `test-out.txt` | Временный вывод теста shell; удалено, в `.gitignore` |
 | `.content_root_dir_override` | Runtime; часто ломает пути при переносе ПК |
 | `.env` | Секреты и машинные пути; не копировать между ПК |
 | `.pytest_cache/` | Кэш pytest |
@@ -123,8 +123,8 @@
 
 | Файл | Назначение |
 |------|------------|
-| `backend/utils/agent_debug_log.py` | Пишет `debug-2fa264.log` |
-| Логи `#region agent log` в `categories_data_sync.py`, `api.py`, `custom-modal.js` | Debug mode |
+| ~~`backend/utils/agent_debug_log.py`~~ | Удалён (2026-05) |
+| ~~`#region agent log` в коде~~ | Удалены (2026-05) |
 
 ---
 

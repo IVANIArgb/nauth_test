@@ -119,19 +119,6 @@ def get_base_categories_data_path() -> str:
         raise PermissionError(
             f"Нет доступа ни к CONTENT_ROOT_DIR ({candidate!r}), ни к {legacy_abs!r}"
         )
-    # #region agent log
-    try:
-        from backend.utils.agent_debug_log import agent_debug_log
-
-        agent_debug_log(
-            "H5",
-            "categories_data_sync.get_base_categories_data_path",
-            "fallback to legacy",
-            {"candidate": candidate, "legacy_abs": legacy_abs},
-        )
-    except Exception:
-        pass
-    # #endregion
     return legacy_abs
 
 
@@ -201,36 +188,6 @@ def ensure_content_root_env_matches_process() -> None:
                 "Задайте путь, доступный текущему пользователю Windows, или оставьте пустым для categories-data в проекте.",
                 raw,
             )
-
-    # #region agent log
-    try:
-        from backend.utils.agent_debug_log import agent_debug_log
-
-        ov = None
-        if os.path.exists(_OVERRIDE_FILE):
-            with open(_OVERRIDE_FILE, "r", encoding="utf-8-sig") as f:
-                ov = _normalize_content_root_path(f.read())
-        agent_debug_log(
-            "H1",
-            "categories_data_sync.ensure_content_root_env_matches_process",
-            "content roots after sanitize",
-            {
-                "override_file": ov,
-                "env_CONTENT_ROOT_DIR": os.environ.get("CONTENT_ROOT_DIR"),
-                "resolved_base": get_base_categories_data_path(),
-                "cwd": os.getcwd(),
-            },
-        )
-    except Exception as ex:
-        from backend.utils.agent_debug_log import agent_debug_log
-
-        agent_debug_log(
-            "H1",
-            "categories_data_sync.ensure_content_root_env_matches_process",
-            "sanitize log failed",
-            {"error": str(ex)},
-        )
-    # #endregion
 
 
 def _iter_category_dirs():

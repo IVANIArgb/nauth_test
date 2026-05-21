@@ -2020,20 +2020,6 @@ def get_categories():
     """Получить список всех категорий с пагинацией."""
     session = get_db_session()
     try:
-        # #region agent log
-        try:
-            from backend.utils.agent_debug_log import agent_debug_log
-            from backend.utils.categories_data_sync import get_base_categories_data_path
-
-            agent_debug_log(
-                "H2",
-                "api.get_categories",
-                "request start",
-                {"base_path": get_base_categories_data_path()},
-            )
-        except Exception:
-            pass
-        # #endregion
         page, per_page = get_pagination_params()
         cats = fs_load_categories()
         total = len(cats)
@@ -2053,19 +2039,6 @@ def get_categories():
             },
         })
     except Exception as e:
-        # #region agent log
-        try:
-            from backend.utils.agent_debug_log import agent_debug_log
-
-            agent_debug_log(
-                "H2",
-                "api.get_categories",
-                "request failed",
-                {"error": str(e), "error_type": type(e).__name__},
-            )
-        except Exception:
-            pass
-        # #endregion
         return jsonify({'error': str(e)}), 500
     finally:
         session.close()
