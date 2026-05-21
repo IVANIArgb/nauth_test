@@ -10,6 +10,38 @@ from werkzeug.utils import secure_filename
 # Константы
 CHUNK_SIZE = 1024 * 1024  # 1MB chunks
 
+def _detect_mime_from_bytes(head: bytes) -> Optional[str]:
+    if len(head) < 4:
+        return None
+    if head.startswith(b"\xff\xd8\xff"):
+        return "image/jpeg"
+    if head[:8] == b"\x89PNG\r\n\x1a\n":
+        return "image/png"
+    if head[:6] in (b"GIF87a", b"GIF89a"):
+        return "image/gif"
+    if len(head) >= 12 and head[:4] == b"RIFF" and head[8:12] == b"WEBP":
+        return "image/webp"
+    if head.startswith(b"%PDF"):
+        return "application/pdf"
+    if head[:4] == b"PK\x03\x04":
+        return "application/zip"
+    return None
+
+
+def _read_file_header(file, nbytes: int = 32) -> bytes:
+    pos = file.tell() if hasattr(file, "tell") else None
+    try:
+        if hasattr(file, "seek"):
+            file.seek(0)
+        chunk = file.read(nbytes) if hasattr(file, "read") else b""
+        if hasattr(file, "seek") and pos is not None:
+            file.seek(pos)
+        elif hasattr(file, "seek"):
+            file.seek(0)
+        return chunk or b""
+    except Exception:
+        return b""
+
 
 def validate_file_size(file, max_size: Optional[int] = None) -> Tuple[bool, Optional[str]]:
     """
@@ -67,13 +99,19 @@ def validate_mime_type(file, allowed_types: Optional[list] = None) -> Tuple[bool
         Tuple[bool, Optional[str]]: (is_valid, warning_message)
     """
     mime_type = file.mimetype or 'application/octet-stream'
-    
+    detected = _detect_mime_from_bytes(_read_file_header(file))
+    if detected and detected != mime_type:
+        mime_type = detected
+
     if allowed_types is None:
         allowed_types = current_app.config.get('ALLOWED_MIME_TYPES', {}).get('files', [])
-    
+
     if allowed_types and mime_type not in allowed_types:
         return False, f'Тип файла {mime_type} не разрешен. Разрешенные типы: {", ".join(allowed_types)}'
-    
+
+    if detected and allowed_types and detected not in allowed_types:
+        return False, f"Содержимое файла ({detected}) не входит в разрешённые типы"
+
     return True, None
 
 

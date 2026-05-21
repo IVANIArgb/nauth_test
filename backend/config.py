@@ -38,7 +38,8 @@ class BaseConfig:
     # Максимальный размер загружаемых файлов (по умолчанию 1GB, можно увеличить через переменную окружения)
     # Для больших видео можно установить MAX_CONTENT_LENGTH=10737418240 (10GB) или больше
     # ВАЖНО: Убедитесь, что у вас достаточно дискового пространства
-    MAX_CONTENT_LENGTH = int(os.environ.get("MAX_CONTENT_LENGTH", 1024 * 1024 * 1024))  # 1GB по умолчанию
+    # По умолчанию 100 MB; для больших видео задайте MAX_CONTENT_LENGTH в .env (например 1–10 GB).
+    MAX_CONTENT_LENGTH = int(os.environ.get("MAX_CONTENT_LENGTH", 100 * 1024 * 1024))
     
     # Разрешенные MIME типы для загрузки файлов
     # ВАЖНО: список для 'files' умышленно более широкий, чтобы позволять
@@ -163,6 +164,8 @@ class BaseConfig:
     # За reverse-proxy (nginx/IIS/oauth2-proxy): доверять логину из заголовка после SSO.
     # ВАЖНО: прокси должен удалять/перезаписывать заголовок от клиента, иначе возможна подмена личности.
     TRUST_REMOTE_USER = os.environ.get("TRUST_REMOTE_USER", "false").lower() in ("true", "1", "yes")
+    # IP/CIDR reverse-proxy, которым доверяем SSO-заголовки (см. auth/trusted_proxy.py). '*' — только dev.
+    TRUSTED_PROXY_IPS = os.environ.get("TRUSTED_PROXY_IPS", "").strip()
     REMOTE_USER_HEADERS = [
         h.strip()
         for h in os.environ.get(
@@ -238,7 +241,22 @@ class ProductionConfig(BaseConfig):
 
     # В production ожидаем HTTPS за proxy → делаем cookies Secure по умолчанию.
     SESSION_COOKIE_SECURE = True
+    SESSION_COOKIE_SAMESITE = os.environ.get("SESSION_COOKIE_SAMESITE", "Strict")
     SECURITY_HSTS_ENABLED = os.environ.get("SECURITY_HSTS_ENABLED", "true").lower() in ("true", "1", "yes")
+    # CSP в enforcing-режиме; без unsafe-inline в script-src (inline-стили по-прежнему допустимы).
+    CSP_REPORT_ONLY = os.environ.get("CSP_REPORT_ONLY", "false").lower() in ("true", "1", "yes")
+    CSP_POLICY = os.environ.get(
+        "CSP_POLICY",
+        "default-src 'self'; "
+        "base-uri 'self'; "
+        "object-src 'none'; "
+        "frame-ancestors 'self'; "
+        "img-src 'self' data: blob:; "
+        "font-src 'self' data:; "
+        "style-src 'self' 'unsafe-inline'; "
+        "script-src 'self'; "
+        "connect-src 'self';",
+    )
 
 
 CONFIG_MAP = {

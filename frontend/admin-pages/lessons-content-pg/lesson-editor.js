@@ -86,10 +86,7 @@ function addBlockControls(block) {
     const controls = document.createElement('div');
     controls.className = 'block-controls';
     controls.innerHTML = `
-        <button class="btn-edit-block" onclick="editBlock(${block.dataset.blockId})">✏️</button>
         <button class="btn-delete-block" onclick="deleteBlock(${block.dataset.blockId})">🗑️</button>
-        <button class="btn-move-up" onclick="moveBlockUp(${block.dataset.blockId})">↑</button>
-        <button class="btn-move-down" onclick="moveBlockDown(${block.dataset.blockId})">↓</button>
     `;
     block.appendChild(controls);
 }

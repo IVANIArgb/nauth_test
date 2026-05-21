@@ -654,7 +654,19 @@ class DatabaseManager:
             database_dir = os.path.dirname(__file__)
             db_path = os.path.abspath(os.path.join(database_dir, 'users_courses.db'))
             database_url = f"sqlite:///{db_path}"
-        self.engine = create_engine(database_url, echo=False)
+        engine_kwargs = {"echo": False}
+        if database_url.startswith("sqlite"):
+            engine_kwargs["connect_args"] = {"check_same_thread": False}
+        self.engine = create_engine(database_url, **engine_kwargs)
+        if database_url.startswith("sqlite"):
+
+            from sqlalchemy import event
+
+            @event.listens_for(self.engine, "connect")
+            def _sqlite_wal(dbapi_connection, connection_record):
+                cursor = dbapi_connection.cursor()
+                cursor.execute("PRAGMA journal_mode=WAL")
+                cursor.close()
         self.SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=self.engine)
         
     def _ensure_qa_schema(self):

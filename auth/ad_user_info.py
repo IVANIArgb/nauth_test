@@ -9,6 +9,17 @@ from typing import Dict, Optional
 
 logger = logging.getLogger(__name__)
 
+# Только безопасные символы для sAMAccountName / PowerShell -Filter (защита от injection).
+_AD_LOGIN_RE = re.compile(r"^[A-Za-z0-9._-]{1,128}$")
+
+
+def sanitize_ad_login(login: str) -> Optional[str]:
+    """Вернуть логин, безопасный для Get-ADUser, или None."""
+    s = (login or "").strip()
+    if not s or not _AD_LOGIN_RE.fullmatch(s):
+        return None
+    return s
+
 
 class ADUserInfo:
     """
@@ -16,7 +27,10 @@ class ADUserInfo:
     """
 
     def __init__(self, login: str):
-        self.login = login
+        safe = sanitize_ad_login(login)
+        if not safe:
+            raise ValueError(f"Недопустимый логин для AD: {login!r}")
+        self.login = safe
         self.user_data = {}
         self.result = {
             'first_name': 'Не указано',
@@ -51,13 +65,16 @@ class ADUserInfo:
         Returns:
             bool: Успешно ли получены данные
         """
-        command = f'''
-        Get-ADUser -Identity "{self.login}" -Properties GivenName, Surname, MiddleName, Name, 
+        # -Filter вместо -Identity: логин уже ограничен sanitize_ad_login (без кавычек и спецсимволов).
+        login_escaped = self.login.replace("'", "''")
+        command = f"""
+        $u = '{login_escaped}'
+        Get-ADUser -Filter "sAMAccountName -eq '$u'" -Properties GivenName, Surname, MiddleName, Name,
                     DisplayName, Department, Title, Company, Office, Description |
-        Select-Object GivenName, Surname, MiddleName, Name, DisplayName, 
+        Select-Object GivenName, Surname, MiddleName, Name, DisplayName,
                     Department, Title, Company, Office, Description |
         ConvertTo-Json -Depth 1
-        '''
+        """
 
         try:
             result = subprocess.run(
@@ -334,5 +351,13 @@ def get_user_info_by_login(login: str) -> dict:
     Returns:
         dict: Информация о пользователе
     """
+    if not sanitize_ad_login(login):
+        return {
+            "first_name": "Не указано",
+            "second_name": "Не указано",
+            "sur_name": "Не указано",
+            "department": "Не указано",
+            "position": "Не указано",
+        }
     user_info = ADUserInfo(login)
     return user_info.get_user_info()

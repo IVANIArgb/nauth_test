@@ -129,6 +129,12 @@ def register_routes(app: Flask) -> None:
         if not app.config.get('DEBUG') and not app.config.get('TESTING'):
             from flask import abort
             abort(404)
+        # H2: при SSO через прокси не отдаём заголовки без явного ALLOW_DEBUG_AUTH.
+        if app.config.get("TRUST_REMOTE_USER") and not (
+            (os.environ.get("ALLOW_DEBUG_AUTH") or "").strip().lower() in ("true", "1", "yes")
+        ):
+            from flask import abort
+            abort(404)
         from flask import g, request
         from database.models import db_manager, User
         

@@ -128,6 +128,41 @@ def _require_admin(user_info: Dict[str, Any] | None) -> Optional[tuple]:
     return jsonify({"error": "Forbidden"}), 403
 
 
+def _forbidden_content_root_path(path: str) -> Optional[str]:
+    """Запрет системных и чувствительных каталогов для CONTENT_ROOT_DIR."""
+    try:
+        p = os.path.normcase(os.path.abspath(os.path.expanduser(path)))
+    except Exception:
+        return "Недопустимый путь к папке контента"
+    blocked_substrings = (
+        "\\windows",
+        "\\program files",
+        "\\program files (x86)",
+        "\\programdata",
+        "\\system32",
+        "\\syswow64",
+    )
+    for frag in blocked_substrings:
+        if frag in p:
+            return "Нельзя использовать системные каталоги Windows в качестве корня контента"
+    if os.name != "nt":
+        blocked_prefixes = (
+            "/etc",
+            "/usr",
+            "/bin",
+            "/sbin",
+            "/proc",
+            "/sys",
+            "/dev",
+            "/var/log",
+            "/root",
+        )
+        for prefix in blocked_prefixes:
+            if p == prefix.rstrip("/") or p.startswith(prefix + os.sep):
+                return "Нельзя использовать системные каталоги Linux в качестве корня контента"
+    return None
+
+
 def _require_super_admin(user_info: Dict[str, Any] | None) -> Optional[tuple]:
     """Проверка прав супер-админа. Только super_admin."""
     if not _is_authenticated_user(user_info):
@@ -298,6 +333,10 @@ def admin_content_root():
             new_root = os.path.abspath(os.path.expanduser(raw_path))
         else:
             new_root = os.path.abspath(os.path.join(project_root, os.path.expanduser(raw_path)))
+
+    deny_path = _forbidden_content_root_path(new_root)
+    if deny_path:
+        return jsonify({"error": deny_path}), 400
 
     try:
         os.makedirs(new_root, exist_ok=True)
@@ -609,6 +648,9 @@ def terminal_role_command():
         return jsonify({"ok": True, "commands": _terminal_commands_catalog()})
 
     if line == "show-settings":
+        deny = _require_super_admin(current_user_info)
+        if deny:
+            return deny
         return jsonify({"ok": True, "settings": _terminal_safe_settings()})
 
     if line == "seed-test-data":
@@ -1384,6 +1426,9 @@ def get_departments():
 @api_bp.route('/statistics', methods=['GET'])
 def get_statistics():
     """Получить общую статистику по системе."""
+    deny = _require_admin(getattr(g, "user_info", None))
+    if deny:
+        return deny
     session = get_db_session()
     try:
         # Общая статистика

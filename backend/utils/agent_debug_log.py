@@ -23,6 +23,14 @@ def agent_debug_log(
     run_id: str = "run1",
 ) -> None:
     # #region agent log
+    if (os.environ.get("FLASK_ENV") or "").strip().lower() == "production":
+        return
+    if (os.environ.get("AGENT_DEBUG_LOG") or "").strip().lower() not in (
+        "true",
+        "1",
+        "yes",
+    ):
+        return
     try:
         payload = {
             "sessionId": _SESSION,

@@ -264,17 +264,32 @@ class TestTerminalRoleCommand:
         assert "seed-test-data" in names
         assert "show-settings" in names
 
-    def test_terminal_show_settings(self, app, client, mock_kerberos_and_ad, sample_user):
+    def test_terminal_show_settings_forbidden_for_user(
+        self, app, client, mock_kerberos_and_ad, sample_user
+    ):
         app.config["TERMINAL_ROLE_COMMANDS_ENABLED"] = True
         resp = client.post(
             "/api/me/terminal-role-command",
             json={"command": "show-settings"},
             headers={"Authorization": "Negotiate FAKE_TOKEN_USER"},
         )
+        assert resp.status_code == 403
+
+    def test_terminal_show_settings_super_admin(
+        self, app, client, mock_kerberos_and_ad, sample_admin, db_session
+    ):
+        app.config["TERMINAL_ROLE_COMMANDS_ENABLED"] = True
+        sample_admin.role = "super_admin"
+        db_session.commit()
+        resp = client.post(
+            "/api/me/terminal-role-command",
+            json={"command": "show-settings"},
+            headers={"Authorization": "Negotiate FAKE_TOKEN_ADMIN"},
+        )
         assert resp.status_code == 200
-        s = resp.get_json().get("settings") or {}
-        assert "TEST_MODE" in s
-        assert "content_path_resolved" in s
+        settings = resp.get_json().get("settings") or {}
+        assert "TEST_MODE" in settings
+        assert "content_path_resolved" in settings
 
     def test_terminal_list_commands(self, app, client, mock_kerberos_and_ad, sample_user):
         app.config["TERMINAL_ROLE_COMMANDS_ENABLED"] = True

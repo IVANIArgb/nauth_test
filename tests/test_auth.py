@@ -1,7 +1,11 @@
 """
 Тесты аутентификации: Kerberos/AD моки, роли (admin/user), guest, ошибочные сценарии.
 """
+import os
+
 import pytest
+
+from auth.ad_user_info import sanitize_ad_login
 
 
 class TestAuthWithMocks:
@@ -80,6 +84,13 @@ class TestAuthWithMocks:
         data = resp.get_json()
         assert "users" in data
         assert "pagination" in data
+
+
+class TestADLoginSanitize:
+    def test_sanitize_rejects_injection(self):
+        assert sanitize_ad_login("valid_user-1") == "valid_user-1"
+        assert sanitize_ad_login('bad"; Remove-ADUser') is None
+        assert sanitize_ad_login("") is None
 
 
 class TestAuthEdgeCases:
@@ -176,3 +187,46 @@ class TestAuthEdgeCases:
         )
         assert resp.status_code == 200
         assert (resp.get_json().get("username") or "").lower() == "clouduser"
+
+    def test_trusted_remote_user_rejected_from_untrusted_ip(
+        self, app, client, mock_no_auth, db_session
+    ):
+        """SSO-заголовок с недоверенного IP игнорируется (TRUSTED_PROXY_IPS)."""
+        from database.models import User
+
+        app.config["TRUST_REMOTE_USER"] = True
+        app.config["REMOTE_USER_HEADERS"] = ["X-Remote-User"]
+        os.environ["TRUSTED_PROXY_IPS"] = "127.0.0.1"
+
+        u = User(
+            username="proxyuser",
+            full_name="Proxy User",
+            surname="User",
+            fst_name="Proxy",
+            sec_name="",
+            department="IT",
+            position="Dev",
+            email="proxyuser@company.com",
+            principal="proxyuser@EXAMPLE.COM",
+            realm="EXAMPLE.COM",
+            role="user",
+            is_active=True,
+        )
+        db_session.add(u)
+        db_session.commit()
+
+        resp = client.get(
+            "/api/current-user",
+            headers={"X-Remote-User": "proxyuser"},
+            environ_overrides={"REMOTE_ADDR": "203.0.113.50"},
+        )
+        assert resp.status_code == 401
+
+    def test_user_cannot_access_statistics(self, app, mock_kerberos_and_ad, sample_user, client):
+        """Статистика системы доступна только admin/super_admin."""
+        resp = client.get(
+            "/api/statistics",
+            headers={"Authorization": "Negotiate FAKE_TOKEN_USER"},
+        )
+        assert resp.status_code == 403
+        assert resp.get_json().get("error") == "Forbidden"

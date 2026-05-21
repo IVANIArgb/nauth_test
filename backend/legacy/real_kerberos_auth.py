@@ -1,3 +1,4 @@
+"""DEPRECATED: используйте auth/new_auth.py. Не импортировать в приложение."""
 from __future__ import annotations
 
 from typing import Any, Dict

@@ -1,7 +1,7 @@
 """
-Simplified Real Kerberos Authentication Module
-Упрощенная версия настоящей Kerberos аутентификации без pyspnego
-Для тестирования на Windows
+DEPRECATED: используйте auth/new_auth.py. Не импортировать в приложение.
+
+Simplified Real Kerberos Authentication Module (архив).
 """
 
 import os

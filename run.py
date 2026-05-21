@@ -53,8 +53,14 @@ env_name = os.environ.get("FLASK_ENV", "development")
 host = os.environ.get("HOST", "127.0.0.1")
 port = int(os.environ.get("PORT", "5000"))
 
+# H2: не включать DEBUG автоматически на 0.0.0.0 / корпоративном хосте — только localhost.
 if env_name.strip().lower() == "development" and "DEBUG" not in os.environ:
-    os.environ["DEBUG"] = "true"
+    if _env_bool("ALLOW_AUTO_DEBUG", default=False) or host.strip() in (
+        "127.0.0.1",
+        "localhost",
+        "::1",
+    ):
+        os.environ["DEBUG"] = "true"
 
 
 def _is_port_busy(bind_host: str, bind_port: int) -> bool:

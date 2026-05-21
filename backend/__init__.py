@@ -107,6 +107,31 @@ def create_app(env_or_config: Optional[str | Dict[str, Any]] = None) -> Flask:
             else:
                 app.config[_ldap_key] = str(_lv).strip()
 
+    def _validate_secret_key_strength():
+        """C5: учебный SECRET_KEY в .env запрещён без явного INSECURE_DEV_SECRET=true."""
+        sk_env = (os.environ.get("SECRET_KEY") or "").strip()
+        if not sk_env:
+            return
+        sk_low = sk_env.lower()
+        weak = (
+            "not-for-production",
+            "замените",
+            "dev-key",
+            "learnsite-docker",
+        )
+        if not any(m in sk_low for m in weak):
+            return
+        allow = (os.environ.get("INSECURE_DEV_SECRET") or "").strip().lower() in (
+            "true",
+            "1",
+            "yes",
+        )
+        if not allow:
+            raise RuntimeError(
+                "Security: SECRET_KEY похож на учебный/плейсхолдер. "
+                "Задайте нормальный ключ или INSECURE_DEV_SECRET=true только для локальной разработки."
+            )
+
     def _validate_production_safety():
         """
         Fail-fast предохранители для production.
@@ -166,6 +191,13 @@ def create_app(env_or_config: Optional[str | Dict[str, Any]] = None) -> Flask:
         if (not sk) or ("not-for-production" in sk_low) or ("замените" in sk_low) or ("dev-key" in sk_low):
             raise RuntimeError("Security: SECRET_KEY выглядит как небезопасный/учебный. Установите нормальный SECRET_KEY.")
 
+        if app.config.get("TRUST_REMOTE_USER") and not (os.environ.get("TRUSTED_PROXY_IPS") or "").strip():
+            raise RuntimeError(
+                "Security: TRUST_REMOTE_USER в production требует TRUSTED_PROXY_IPS "
+                "(IP/CIDR reverse-proxy, не '*')."
+            )
+
+    _validate_secret_key_strength()
     _validate_production_safety()
 
     configure_logging(app)
@@ -228,11 +260,13 @@ def create_app(env_or_config: Optional[str | Dict[str, Any]] = None) -> Flask:
     # Initialize Rate Limiting for all routes (API + страницы)
     # Цель: защититься от DDoS одним клиентом, но не душить нормальную нагрузку.
     # Базовый лимит: 1000 запросов в минуту с одного IP, остальные ограничения задаются точечно в api.py.
+    # H4: memory:// — на процесс; для кластера задайте RATELIMIT_STORAGE_URI=redis://...
+    _ratelimit_storage = (os.environ.get("RATELIMIT_STORAGE_URI") or "memory://").strip()
     limiter = Limiter(
         app=app,
         key_func=get_remote_address,
         default_limits=["1000 per minute"],  # >= 1000 запросов в минуту на IP
-        storage_uri="memory://",
+        storage_uri=_ratelimit_storage,
         swallow_errors=True,  # Не роняем приложение, если хранилище лимитов недоступно
     )
     app.limiter = limiter  # Make limiter available for decorators
@@ -243,7 +277,7 @@ def create_app(env_or_config: Optional[str | Dict[str, Any]] = None) -> Flask:
     
     # Initialize API and Database
     api_bp = init_api(app)
-    # Exempt API blueprint from CSRF (REST APIs typically don't use CSRF tokens)
+    # H6: REST API без CSRF-токенов (Bearer/Kerberos). Cookie-сессии — SameSite=Strict в production.
     csrf.exempt(api_bp)
     
     register_routes(app)

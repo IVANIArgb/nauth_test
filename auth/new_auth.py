@@ -13,6 +13,7 @@ from flask import request, g, current_app
 
 from auth.auth_script import get_username_from_kerberos
 from auth.ad_user_info import get_user_info_by_login
+from auth.trusted_proxy import is_trusted_proxy_ip, request_client_ip
 
 
 class NewAuth:
@@ -91,6 +92,12 @@ class NewAuth:
             if not current_app.config.get("TRUST_REMOTE_USER"):
                 return None
         except Exception:
+            return None
+        client_ip = request_client_ip(
+            request.remote_addr,
+            request.headers.get("X-Forwarded-For"),
+        )
+        if not is_trusted_proxy_ip(client_ip):
             return None
         b64_hdr = request.headers.get("X-Remote-User-B64")
         if b64_hdr:
