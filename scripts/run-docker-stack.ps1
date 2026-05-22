@@ -1,21 +1,12 @@
 #Requires -Version 5.1
-<#
-.SYNOPSIS
-  Сборка образа и запуск LearningSite в Docker (SSO-прокси без keytab).
-.EXAMPLE
-  .\scripts\run-docker-stack.ps1
-#>
+# ASCII-only messages (Windows PowerShell encoding safe).
 $ErrorActionPreference = "Stop"
 $ProjectRoot = (Resolve-Path (Join-Path $PSScriptRoot "..")).Path
 Set-Location $ProjectRoot
 
-function Require-Command([string]$name, [string]$hint) {
-    if (-not (Get-Command $name -ErrorAction SilentlyContinue)) {
-        throw "Не найдена команда '$name'. $hint"
-    }
+if (-not (Get-Command docker -ErrorAction SilentlyContinue)) {
+    throw "docker command not found. Install Docker Desktop."
 }
-
-Require-Command "docker" "Установите Docker Desktop и убедитесь, что docker version работает."
 
 $envFile = Join-Path $ProjectRoot ".env"
 if (-not (Test-Path $envFile)) {
@@ -23,7 +14,7 @@ if (-not (Test-Path $envFile)) {
         $src = Join-Path $ProjectRoot $t
         if (Test-Path $src) {
             Copy-Item -LiteralPath $src -Destination $envFile
-            Write-Host "Создан .env из $t"
+            Write-Host "Created .env from $t"
             break
         }
     }
@@ -33,14 +24,14 @@ $composeFiles = @("-f", "docker-compose.yml")
 if (Test-Path (Join-Path $ProjectRoot "docker-compose.sso.yml")) {
     $composeFiles += @("-f", "docker-compose.sso.yml")
 }
-$composeArgs = ($composeFiles -join " ")
 
-Write-Host "Docker: сборка образа и запуск контейнеров..."
+Write-Host "Docker: build ..."
 & docker compose @composeFiles build
-if ($LASTEXITCODE -ne 0) { throw "docker compose build: код $LASTEXITCODE" }
+if ($LASTEXITCODE -ne 0) { throw "docker compose build exit $LASTEXITCODE" }
 
+Write-Host "Docker: up -d ..."
 & docker compose @composeFiles up -d
-if ($LASTEXITCODE -ne 0) { throw "docker compose up: код $LASTEXITCODE" }
+if ($LASTEXITCODE -ne 0) { throw "docker compose up exit $LASTEXITCODE" }
 
 $webPort = "8080"
 if (Test-Path $envFile) {
@@ -53,13 +44,11 @@ if (Test-Path $envFile) {
 }
 
 Write-Host ""
-Write-Host "Готово (Docker)." -ForegroundColor Green
+Write-Host "OK (Docker)." -ForegroundColor Green
 if ($composeFiles -contains "docker-compose.sso.yml") {
-    Write-Host ("  Сайт (SSO):  http://localhost:{0}/" -f $webPort)
-    Write-Host ("  API:         http://localhost:{0}/api/current-user" -f $webPort)
-    Write-Host "  Прямой web:  http://localhost:8000/healthz"
+    Write-Host "  Site: http://localhost:$webPort/"
+    Write-Host "  API:  http://localhost:$webPort/api/current-user"
+    Write-Host "  Direct: http://localhost:8000/healthz"
 } else {
-    Write-Host "  Сайт:        http://localhost:8000/"
+    Write-Host "  Site: http://localhost:8000/"
 }
-Write-Host ("  Логи:        docker compose {0} logs -f web" -f $composeArgs)
-Write-Host ("  Остановка:   docker compose {0} down" -f $composeArgs)
