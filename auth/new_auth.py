@@ -291,6 +291,23 @@ class NewAuth:
                 'ip_address': request.remote_addr
             }
     
+    @staticmethod
+    def _is_placeholder_profile_field(value: Any) -> bool:
+        """Пустые/демо-значения, которые можно заменить данными из AD."""
+        v = (value or "").strip().lower()
+        if not v:
+            return True
+        return v in (
+            "guest",
+            "gость",
+            "не указано",
+            "ошибка",
+            "error",
+            "none",
+            "null",
+            "testadmin",
+        )
+
     def _clean_ad_value(self, value: Any) -> str:
         """Очистка и валидация значения из AD"""
         if not value:
@@ -462,19 +479,27 @@ class NewAuth:
                         existing_user.sec_name = sec_name
                         updated = True
                     
-                    # Обновляем department если новое значение валидное и отличается
-                    if department and department != existing_user.department:
+                    # Обновляем department/position: и при смене, и если в БД остался GUEST/пусто
+                    if department and (
+                        department != existing_user.department
+                        or self._is_placeholder_profile_field(existing_user.department)
+                    ):
                         existing_user.department = department
                         updated = True
-                    
-                    # Обновляем position если новое значение валидное и отличается
-                    if position and position != existing_user.position:
+
+                    if position and (
+                        position != existing_user.position
+                        or self._is_placeholder_profile_field(existing_user.position)
+                    ):
                         existing_user.position = position
                         updated = True
-                    
-                    # Обновляем full_name если изменились части
+
                     new_full_name = ' '.join(part for part in [surname, fst_name, sec_name] if part).strip() or username
-                    if new_full_name != (existing_user.full_name or ''):
+                    if new_full_name and (
+                        new_full_name != (existing_user.full_name or '')
+                        or existing_user.full_name == username
+                        or self._is_placeholder_profile_field(existing_user.full_name)
+                    ):
                         existing_user.full_name = new_full_name
                         updated = True
                     

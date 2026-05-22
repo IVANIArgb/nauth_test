@@ -26,8 +26,14 @@ if errorlevel 1 (
 )
 
 if not exist ".env" (
-  if exist "docker.env.sso.example" copy /Y "docker.env.sso.example" ".env" >nul
+  if exist "docker.env.sso-ad.example" copy /Y "docker.env.sso-ad.example" ".env" >nul
+  if not exist ".env" if exist "docker.env.sso.example" copy /Y "docker.env.sso.example" ".env" >nul
   if not exist ".env" if exist "docker.env.example" copy /Y "docker.env.example" ".env" >nul
+  echo Created .env - edit LDAP_* and SSO_DEFAULT_USER before production use.
+)
+
+if exist "scripts\patch-sso-user-from-windows.ps1" (
+  powershell.exe -NoLogo -NoProfile -ExecutionPolicy Bypass -File "scripts\patch-sso-user-from-windows.ps1"
 )
 
 set "DC=-f docker-compose.yml"

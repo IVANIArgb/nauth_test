@@ -38,3 +38,13 @@ services:
       DOCKER_AUTH_FALLBACK: "false"
       KERBEROS_GSSAPI_ENABLED: "false"
       ALLOW_INSECURE_NEGOTIATE_HEURISTIC: "false"
+      # AD profile in container (no keytab): LDAP to domain controller
+      LDAP_ENABLED: ${LDAP_ENABLED:-true}
+      LDAP_SERVER: ${LDAP_SERVER:-}
+      LDAP_BASE_DN: ${LDAP_BASE_DN:-}
+      LDAP_USER: ${LDAP_USER:-}
+      LDAP_BIND_DN: ${LDAP_BIND_DN:-}
+      LDAP_PASSWORD: ${LDAP_PASSWORD:-}
+      LDAP_USE_SSL: ${LDAP_USE_SSL:-false}
+      DEFAULT_USER_DEPARTMENT: ${DEFAULT_USER_DEPARTMENT:-}
+      DEFAULT_USER_POSITION: ${DEFAULT_USER_POSITION:-}

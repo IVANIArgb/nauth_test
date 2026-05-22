@@ -16,7 +16,7 @@
 .\update.bat
 ```
 
-Обновляет ветку **`tests`**, **собирает образ** и **запускает контейнеры** (SSO без keytab). Только Docker: `.\run-server.bat`. Подробности: [`docs/mds/remote-pc-launch.md`](docs/mds/remote-pc-launch.md).
+Профиль из **Active Directory без keytab**: скопируйте `docker.env.sso-ad.example` → `.env`, укажите `LDAP_*` и `SSO_DEFAULT_USER`, затем `.\run-server.bat`. Подробности: [`docs/mds/docker-sso-ldap-no-keytab.md`](docs/mds/docker-sso-ldap-no-keytab.md).
 
 ## Фронтенд-структура
 

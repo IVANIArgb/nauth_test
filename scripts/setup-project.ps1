@@ -134,7 +134,7 @@ Write-Host "pip install -r $req ..."
 $envFile = Join-Path $ProjectRoot ".env"
 if (-not (Test-Path $envFile)) {
     $template = $null
-    foreach ($t in @("env.corporate-remote.example", "env.example", "docker.env.sso.example", "docker.env.example")) {
+    foreach ($t in @("docker.env.sso-ad.example", "env.corporate-remote.example", "env.example", "docker.env.sso.example", "docker.env.example")) {
         $p = Join-Path $ProjectRoot $t
         if (Test-Path $p) {
             $template = $p
