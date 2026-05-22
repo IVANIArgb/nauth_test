@@ -10,10 +10,16 @@
 .\setup-and-run.bat
 ```
 
-Только обновление кода + Docker (если репозиторий уже есть):
+Только обновление кода + Docker (если репозиторий уже есть; в корне есть папка `tests\` — не пишите `checkout tests`):
 
 ```cmd
-git fetch origin tests && git checkout tests && git pull --ff-only origin tests && .\run-server.bat
+.\update.bat
+```
+
+Или вручную:
+
+```cmd
+git fetch origin tests && git checkout -B tests origin/tests && git pull --ff-only origin tests && .\run-server.bat
 ```
 
 ### Только установка без Docker

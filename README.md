@@ -10,7 +10,13 @@
 .\setup-and-run.bat
 ```
 
-Обновляет ветку **`tests`**, подготавливает `.env`, **собирает образ** и **запускает контейнеры** (SSO без keytab). Только перезапуск Docker: `.\run-server.bat`. Подробности: [`docs/mds/remote-pc-launch.md`](docs/mds/remote-pc-launch.md).
+Уже есть клон — **обновление с GitHub + Docker**:
+
+```cmd
+.\update.bat
+```
+
+Обновляет ветку **`tests`**, **собирает образ** и **запускает контейнеры** (SSO без keytab). Только Docker: `.\run-server.bat`. Подробности: [`docs/mds/remote-pc-launch.md`](docs/mds/remote-pc-launch.md).
 
 ## Фронтенд-структура
 

@@ -33,6 +33,7 @@ $composeFiles = @("-f", "docker-compose.yml")
 if (Test-Path (Join-Path $ProjectRoot "docker-compose.sso.yml")) {
     $composeFiles += @("-f", "docker-compose.sso.yml")
 }
+$composeArgs = ($composeFiles -join " ")
 
 Write-Host "Docker: сборка образа и запуск контейнеров..."
 & docker compose @composeFiles build
@@ -54,11 +55,11 @@ if (Test-Path $envFile) {
 Write-Host ""
 Write-Host "Готово (Docker)." -ForegroundColor Green
 if ($composeFiles -contains "docker-compose.sso.yml") {
-    Write-Host "  Сайт (SSO):  http://localhost:${webPort}/"
-    Write-Host "  API:         http://localhost:${webPort}/api/current-user"
+    Write-Host ("  Сайт (SSO):  http://localhost:{0}/" -f $webPort)
+    Write-Host ("  API:         http://localhost:{0}/api/current-user" -f $webPort)
     Write-Host "  Прямой web:  http://localhost:8000/healthz"
 } else {
     Write-Host "  Сайт:        http://localhost:8000/"
 }
-Write-Host "  Логи:        docker compose $($composeFiles -join ' ') logs -f web"
-Write-Host "  Остановка:   docker compose $($composeFiles -join ' ') down"
+Write-Host ("  Логи:        docker compose {0} logs -f web" -f $composeArgs)
+Write-Host ("  Остановка:   docker compose {0} down" -f $composeArgs)
