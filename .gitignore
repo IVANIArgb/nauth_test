@@ -77,3 +77,6 @@ kerberos/keytabs/
 debug-*.log
 test-out.txt
 .content_root_dir_override
+
+# AD profile cache from host (per user, auto-generated)
+runtime/ad-cache/*.json

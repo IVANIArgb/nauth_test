@@ -48,3 +48,7 @@ services:
       LDAP_USE_SSL: ${LDAP_USE_SSL:-false}
       DEFAULT_USER_DEPARTMENT: ${DEFAULT_USER_DEPARTMENT:-}
       DEFAULT_USER_POSITION: ${DEFAULT_USER_POSITION:-}
+      AD_HOST_PROFILE_CACHE_ENABLED: ${AD_HOST_PROFILE_CACHE_ENABLED:-true}
+      AD_HOST_PROFILE_CACHE_DIR: ${AD_HOST_PROFILE_CACHE_DIR:-/app/runtime/ad-cache}
+    volumes:
+      - ./runtime/ad-cache:/app/runtime/ad-cache:ro

@@ -276,6 +276,15 @@ def get_user_info_by_login(login: str) -> dict:
     Returns:
         dict: Информация о пользователе
     """
+    try:
+        from auth.ad_host_cache import get_user_info_from_host_cache
+
+        cached = get_user_info_from_host_cache(login)
+        if cached:
+            return cached
+    except Exception:
+        pass
+
     use_ldap = False
     cfg: Optional[Dict[str, Any]] = None
     try:

@@ -17,7 +17,7 @@ git pull --ff-only origin tests
 if errorlevel 1 goto :gitfail
 
 echo.
-echo Git OK. Starting Docker ...
+echo Git OK. Starting (AD auto) ...
 call "%~dp0run-server.bat"
 exit /b %ERRORLEVEL%
 

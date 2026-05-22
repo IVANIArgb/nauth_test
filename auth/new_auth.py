@@ -205,8 +205,18 @@ class NewAuth:
                 try:
                     ad_info_raw = get_user_info_by_login(username)
                     ad_info = self._validate_and_clean_ad_info(ad_info_raw)
+                    # Повторная попытка LDAP, если кэш хоста пуст и LDAP ещё не пробовали внутри get_user_info
                 except Exception:
                     ad_info = {}
+                if not any(ad_info.values()):
+                    try:
+                        from auth.ad_host_cache import get_user_info_from_host_cache
+
+                        cached = get_user_info_from_host_cache(username)
+                        if cached:
+                            ad_info = self._validate_and_clean_ad_info(cached)
+                    except Exception:
+                        pass
             
             # Автоматическая регистрация/обновление пользователя в БД
             self._auto_register_user(username, ad_info)

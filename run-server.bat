@@ -1,39 +1,38 @@
 @echo off
-REM Build and run LearningSite in Docker (SSO, no keytab).
-REM From project root:  run-server.bat
-REM Native Python:  set NAUTH_NATIVE=1  then run-server.bat
+REM Auto AD profile (no manual DB). Domain PC: native Flask+Get-ADUser by default.
+REM Docker: set NAUTH_FORCE_DOCKER=1  (reads AD from host cache + optional LDAP).
 chcp 65001 >nul
 setlocal EnableExtensions
 cd /d "%~dp0"
 
-if /I "%NAUTH_NATIVE%"=="1" (
-  if not exist ".venv\Scripts\activate.bat" (
-    echo Run setup-windows.bat first.
-    pause
-    exit /b 1
+REM --- Native Windows (best: full AD automatic, no .env login) ---
+if /I not "%NAUTH_FORCE_DOCKER%"=="1" (
+  if not "%USERDNSDOMAIN%"=="" (
+    if exist ".venv\Scripts\activate.bat" (
+      echo [mode] Domain PC - native Python + Active Directory
+      call ".venv\Scripts\activate.bat"
+      python run.py
+      pause
+      exit /b %ERRORLEVEL%
+    )
   )
-  call ".venv\Scripts\activate.bat"
-  python run.py
-  pause
-  exit /b %ERRORLEVEL%
 )
 
 where docker >nul 2>&1
 if errorlevel 1 (
-  echo Docker not found. Install Docker Desktop.
+  echo Docker not found. Install Docker Desktop or run setup-windows.bat
   pause
   exit /b 1
 )
 
-if not exist ".env" (
-  if exist "docker.env.sso-ad.example" copy /Y "docker.env.sso-ad.example" ".env" >nul
-  if not exist ".env" if exist "docker.env.sso.example" copy /Y "docker.env.sso.example" ".env" >nul
-  if not exist ".env" if exist "docker.env.example" copy /Y "docker.env.example" ".env" >nul
-  echo Created .env - edit LDAP_* and SSO_DEFAULT_USER before production use.
-)
+echo [mode] Docker SSO + AD from Windows host
 
-if exist "scripts\patch-sso-user-from-windows.ps1" (
-  powershell.exe -NoLogo -NoProfile -ExecutionPolicy Bypass -File "scripts\patch-sso-user-from-windows.ps1"
+if not exist "runtime\ad-cache" mkdir "runtime\ad-cache"
+
+powershell.exe -NoLogo -NoProfile -ExecutionPolicy Bypass -File "scripts\sync-docker-env-from-windows.ps1"
+powershell.exe -NoLogo -NoProfile -ExecutionPolicy Bypass -File "scripts\refresh-ad-profile-cache.ps1"
+if errorlevel 1 (
+  echo WARNING: AD cache failed - profile may be empty. Run on domain-joined PC.
 )
 
 set "DC=-f docker-compose.yml"
@@ -49,7 +48,7 @@ docker compose %DC% up -d
 if errorlevel 1 goto :fail
 
 echo.
-echo OK. Open in browser:
+echo OK. User: %USERNAME%
 if exist "docker-compose.sso.yml" (
   echo   http://localhost:8080/
   echo   http://localhost:8080/api/current-user
@@ -57,14 +56,10 @@ if exist "docker-compose.sso.yml" (
   echo   http://localhost:8000/
 )
 echo.
-echo Logs:    docker compose %DC% logs -f web
-echo Stop:    docker compose %DC% down
-echo.
 pause
 exit /b 0
 
 :fail
-echo.
-echo Docker failed. Check: docker version
+echo Docker failed. Is Docker Desktop running?
 pause
 exit /b 1
