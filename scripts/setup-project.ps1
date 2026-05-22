@@ -33,7 +33,7 @@ param(
 $ErrorActionPreference = "Stop"
 $ScriptRoot = $PSScriptRoot
 $DefaultRepo = "https://github.com/IVANIArgb/nauth_test.git"
-$DefaultBranch = "main"
+$DefaultBranch = "tests"
 
 $RepoUrl = if ($Repo) { $Repo.Trim() } elseif ($env:NAUTH_REPO) { $env:NAUTH_REPO.Trim() } else { $DefaultRepo }
 $GitBranch = if ($Branch) { $Branch.Trim() } elseif ($env:NAUTH_BRANCH) { $env:NAUTH_BRANCH.Trim() } else { $DefaultBranch }
@@ -200,17 +200,18 @@ if (Test-Path $envFile) {
     }
 }
 
-# --- Ярлык запуска (опционально) ---
+# --- Ярлык запуска: Docker (сборка + контейнер) ---
 $runBat = Join-Path $ProjectRoot "run-server.bat"
-@"
+if (-not (Test-Path $runBat)) {
+    @"
 @echo off
 chcp 65001 >nul
 cd /d "%~dp0"
-call ".venv\Scripts\activate.bat"
-python run.py
+powershell.exe -NoLogo -NoProfile -ExecutionPolicy Bypass -File "%~dp0scripts\run-docker-stack.ps1"
 pause
 "@ | Set-Content -Path $runBat -Encoding UTF8
-Write-Host "Создан ярлык: run-server.bat"
+    Write-Host "Создан: run-server.bat (Docker)"
+}
 
 $useDocker = $Docker -or (($env:NAUTH_USE_DOCKER -or "").Trim().ToLowerInvariant() -in @("1", "true", "yes", "y", "on"))
 if ($useDocker) {
@@ -222,11 +223,12 @@ if ($useDocker) {
         docker compose -f docker-compose.yml up -d --build
     }
     if ($LASTEXITCODE -ne 0) { throw "docker compose завершился с кодом $LASTEXITCODE" }
-    Write-Host "Готово (Docker). Сайт см. в выводе docker / README."
+    Write-Host "Готово (Docker). Дальнейший перезапуск: .\run-server.bat"
 } else {
     Write-Host ""
     Write-Host "Готово (нативный Python)." -ForegroundColor Green
     Write-Host "  Каталог: $ProjectRoot"
-    Write-Host "  Запуск:  .\run-server.bat   или   .\.venv\Scripts\Activate.ps1 ; python run.py"
+    Write-Host "  Docker:  .\run-server.bat"
+    Write-Host "  Python:  set NAUTH_NATIVE=1 & .\run-server.bat"
     Write-Host "  В логе при старте ищите: learningsite.startup"
 }

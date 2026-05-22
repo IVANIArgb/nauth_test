@@ -2,34 +2,45 @@
 
 Полный шаблон переменных окружения: файл **`env.corporate-remote.example`** в корне репозитория. Скопируйте его в **`.env`** и подставьте свои значения (realm, DC, секреты).
 
-## Автоустановка (рекомендуется): `setup-windows.bat`
+## Автоустановка (рекомендуется): `setup-and-run.bat`
 
-Из корня репозитория (или скопируйте `setup-windows.bat` и папку `scripts` вместе с проектом):
+Одна команда из корня: обновление ветки **`tests`**, подготовка `.env`, **сборка Docker-образа** и **запуск контейнеров** (нужны Git и Docker Desktop):
 
-```powershell
+```cmd
+.\setup-and-run.bat
+```
+
+Только обновление кода + Docker (если репозиторий уже есть):
+
+```cmd
+git fetch origin tests && git checkout tests && git pull --ff-only origin tests && .\run-server.bat
+```
+
+### Только установка без Docker
+
+```cmd
 .\setup-windows.bat
 ```
 
-- Если это уже git-репозиторий: `git pull`, `.venv`, `pip install`, при необходимости создание `.env` и подстановка `SECRET_KEY`.
-- Если указать **несуществующий** каталог первым аргументом — выполнится `git clone` с веткой (второй аргумент, по умолчанию `main`).
+По умолчанию ветка **`tests`**. Для Docker после setup: `.\run-server.bat`.
 
 Примеры:
 
 ```cmd
 setup-windows.bat
-setup-windows.bat D:\Apps\nauth_test develop
+setup-windows.bat D:\Apps\nauth_test tests
 ```
 
 Переменные перед запуском из `cmd`:
 
 ```cmd
 set NAUTH_REPO=https://github.com/IVANIArgb/nauth_test.git
-set NAUTH_BRANCH=main
+set NAUTH_BRANCH=tests
 set NAUTH_USE_DOCKER=1
 setup-windows.bat
 ```
 
-Логика в `scripts\setup-project.ps1`. После установки можно запускать **`run-server.bat`** (создаётся скриптом) или `python run.py`.
+**`run-server.bat`** — `docker compose build` + `up -d` (SSO-стек). Нативный Python: `set NAUTH_NATIVE=1` и снова `run-server.bat`.
 
 ### Если «всё сделал, но ошибки те же»
 

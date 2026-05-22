@@ -4,7 +4,13 @@
 
 ## Установка на Windows
 
-Двойной щелчок по **`setup-windows.bat`** в корне (нужны [Git](https://git-scm.com/download/win) и Python 3): клон/обновление репозитория, ветка, `.venv`, зависимости, `.env`. Подробности и переменные окружения: [`docs/mds/remote-pc-launch.md`](docs/mds/remote-pc-launch.md).
+Из корня проекта (нужны [Git](https://git-scm.com/download/win) и [Docker Desktop](https://www.docker.com/products/docker-desktop/)):
+
+```cmd
+.\setup-and-run.bat
+```
+
+Обновляет ветку **`tests`**, подготавливает `.env`, **собирает образ** и **запускает контейнеры** (SSO без keytab). Только перезапуск Docker: `.\run-server.bat`. Подробности: [`docs/mds/remote-pc-launch.md`](docs/mds/remote-pc-launch.md).
 
 ## Фронтенд-структура
 
