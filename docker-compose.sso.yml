@@ -49,7 +49,9 @@ services:
       LDAP_USE_SSL: ${LDAP_USE_SSL:-false}
       DEFAULT_USER_DEPARTMENT: ${DEFAULT_USER_DEPARTMENT:-}
       DEFAULT_USER_POSITION: ${DEFAULT_USER_POSITION:-}
+      # На сервере: LDAP к AD по каждому логину. Файловый кэш — только dev (AD_HOST_PROFILE_CACHE_DEV=true).
       AD_HOST_PROFILE_CACHE_ENABLED: ${AD_HOST_PROFILE_CACHE_ENABLED:-true}
+      AD_HOST_PROFILE_CACHE_DEV: ${AD_HOST_PROFILE_CACHE_DEV:-false}
       AD_HOST_PROFILE_CACHE_DIR: ${AD_HOST_PROFILE_CACHE_DIR:-/app/runtime/ad-cache}
       LANG: C.UTF-8
       LC_ALL: C.UTF-8

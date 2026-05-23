@@ -1,0 +1,61 @@
+# Продакшен на хостинге: образ + LDAP в AD + SSO-заголовок от корп. прокси (без keytab).
+#
+# Сборка у себя:
+#   docker compose -f docker-compose.yml -f docker-compose.hosting.yml build
+#   docker save learnsite:web -o learnsite-web.tar
+#
+# На хостинге:
+#   copy docker.env.hosting.example .env   (LDAP_*, TRUSTED_PROXY_IPS, SECRET_KEY)
+#   docker load -i learnsite-web.tar
+#   docker compose -f docker-compose.yml -f docker-compose.hosting.yml up -d
+#
+# Сайт: http://<host>:${WEB_PORT:-8080}/
+# Перед nginx должен стоять IIS/шлюз с Windows Auth → X-Remote-User
+
+services:
+  sso-proxy:
+    image: nginx:1.27-alpine
+    container_name: learnsite-hosting-proxy
+    ports:
+      - "${WEB_PORT:-8080}:80"
+    volumes:
+      - ./deploy/nginx/hosting-upstream.conf.template:/etc/nginx/templates/default.conf.template:ro
+    depends_on:
+      web:
+        condition: service_healthy
+    restart: unless-stopped
+
+  web:
+    ports: []
+    expose:
+      - "8000"
+    environment:
+      HOSTING_MODE: "1"
+      HOSTING_STRICT_SSO: "true"
+      FLASK_ENV: ${FLASK_ENV:-production}
+      TRUST_REMOTE_USER: "true"
+      TRUST_REMOTE_USER_CONFIRM: "true"
+      DOCKER_AUTH_FALLBACK: "false"
+      TEST_MODE: "false"
+      KERBEROS_GSSAPI_ENABLED: "false"
+      ALLOW_INSECURE_NEGOTIATE_HEURISTIC: "false"
+      LDAP_ENABLED: ${LDAP_ENABLED:-true}
+      AD_DNS_DOMAIN: ${AD_DNS_DOMAIN:-}
+      LDAP_SERVER: ${LDAP_SERVER:-}
+      LDAP_BASE_DN: ${LDAP_BASE_DN:-}
+      LDAP_USER: ${LDAP_USER:-}
+      LDAP_BIND_DN: ${LDAP_BIND_DN:-}
+      LDAP_PASSWORD: ${LDAP_PASSWORD:-}
+      LDAP_USE_SSL: ${LDAP_USE_SSL:-false}
+      KERBEROS_REALM: ${KERBEROS_REALM:-EXAMPLE.COM}
+      REMOTE_USER_HEADERS: ${REMOTE_USER_HEADERS:-X-Remote-User-B64,X-Remote-User,Remote-User,X-Forwarded-User}
+      AD_HOST_PROFILE_CACHE_DEV: "false"
+      AD_HOST_PROFILE_CACHE_ENABLED: "false"
+      TRUSTED_PROXY_IPS: ${TRUSTED_PROXY_IPS:-172.16.0.0/12,10.0.0.0/8,127.0.0.1,::1}
+      LANG: C.UTF-8
+      LC_ALL: C.UTF-8
+      PYTHONUTF8: "1"
+    volumes:
+      - learnsite_db:/app/database
+      - learnsite_content:/app/categories-data
+      - learnsite_backups:/app/backups

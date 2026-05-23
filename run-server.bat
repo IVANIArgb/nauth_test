@@ -30,14 +30,12 @@ echo [mode] Docker SSO + AD from Windows host
 if not exist "runtime\ad-cache" mkdir "runtime\ad-cache"
 
 powershell.exe -NoLogo -NoProfile -ExecutionPolicy Bypass -File "scripts\sync-docker-env-from-windows.ps1"
-powershell.exe -NoLogo -NoProfile -ExecutionPolicy Bypass -File "scripts\refresh-ad-profile-cache.ps1" -Login "%USERNAME%"
-if errorlevel 1 (
-  if not "%USERDNSDOMAIN%"=="" (
-    echo ERROR: AD profile cache failed. Run on domain PC as %USERNAME%.
-    pause
-    exit /b 1
-  )
-  echo WARNING: AD cache skipped - not domain PC.
+REM Dev-кэш AD на диск (опционально). На сервере профиль идёт из LDAP в контейнере.
+if /I "%AD_HOST_PROFILE_CACHE_DEV%"=="1" (
+  powershell.exe -NoLogo -NoProfile -ExecutionPolicy Bypass -File "scripts\refresh-ad-profile-cache.ps1" -Login "%USERNAME%"
+  if errorlevel 1 echo WARNING: AD dev cache failed — use LDAP_* in .env for multi-user.
+) else (
+  echo [info] AD_HOST_PROFILE_CACHE_DEV not set — profile from LDAP inside container per login.
 )
 
 set "DC=-f docker-compose.yml"

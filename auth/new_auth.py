@@ -9,7 +9,8 @@ import sys
 import shutil
 from typing import Dict, Any, Optional
 from datetime import datetime
-from flask import request, g, current_app
+from flask import request, g, current_app, abort
+from werkzeug.exceptions import HTTPException
 
 from auth.auth_script import get_username_from_kerberos
 from auth.ad_profile_resolver import resolve_ad_profile
@@ -47,6 +48,15 @@ class NewAuth:
         env_val = os.environ.get("TEST_MODE", "")
         val = cfg_val if cfg_val is not None else env_val
         return str(val).strip().lower() in ("true", "1", "yes", "y", "on")
+
+    def _hosting_strict_sso(self) -> bool:
+        try:
+            v = current_app.config.get("HOSTING_STRICT_SSO")
+        except Exception:
+            v = None
+        if v is None:
+            v = os.environ.get("HOSTING_STRICT_SSO", "")
+        return str(v).strip().lower() in ("true", "1", "yes", "y", "on")
 
     def _is_root_test_mode(self) -> bool:
         """
@@ -237,6 +247,8 @@ class NewAuth:
                     username = default_user
 
             if not username:
+                if self._hosting_strict_sso() and current_app.config.get("TRUST_REMOTE_USER"):
+                    abort(401, description="SSO required: no domain user in trusted headers")
                 # Если не удалось получить логин, создаем guest пользователя
                 g.user_info = {
                     'username': 'guest',
@@ -323,12 +335,16 @@ class NewAuth:
             }
             
             
-        except Exception as e:
+        except HTTPException:
+            raise
+        except Exception:
             test_mode = False
             try:
                 test_mode = self._is_test_mode()
             except Exception:
                 test_mode = False
+            if self._hosting_strict_sso() and current_app.config.get("TRUST_REMOTE_USER"):
+                abort(401, description="SSO authentication failed")
             g.user_info = {
                 'username': 'guest',
                 'full_name': 'Guest User',

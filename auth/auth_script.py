@@ -138,6 +138,25 @@ def _ignore_os_username_for_portal(username: str) -> bool:
     return username.strip().lower() in _SERVICE_OS_USERS
 
 
+def _hosting_strict_sso_active() -> bool:
+    try:
+        from flask import has_app_context, current_app
+
+        if has_app_context():
+            v = current_app.config.get("HOSTING_STRICT_SSO")
+            if v is not None:
+                return str(v).strip().lower() in ("true", "1", "yes", "y", "on")
+    except Exception:
+        pass
+    return (os.environ.get("HOSTING_STRICT_SSO") or "").strip().lower() in (
+        "true",
+        "1",
+        "yes",
+        "y",
+        "on",
+    )
+
+
 def get_username_from_kerberos(auth_header: Optional[str] = None, token: Optional[str] = None) -> Optional[str]:
     """
     Извлекает имя пользователя из Kerberos токена или использует Windows Auth как fallback.
@@ -245,6 +264,7 @@ def get_username_from_kerberos(auth_header: Optional[str] = None, token: Optiona
         sys.platform == "win32"
         and not (os.environ.get("DOCKER") or "").strip()
         and not _testing
+        and not _hosting_strict_sso_active()
     ):
         try:
             from auth.windows_identity import sam_account_name
@@ -254,6 +274,10 @@ def get_username_from_kerberos(auth_header: Optional[str] = None, token: Optiona
                 return u.lower()
         except Exception:
             pass
+
+    # Хостинг: только SSO-заголовки с прокси, не getpass/ОС
+    if _hosting_strict_sso_active():
+        return None
 
     # Вариант 4: getpass (Linux dev; в контейнере часто root — отбрасываем)
     try:

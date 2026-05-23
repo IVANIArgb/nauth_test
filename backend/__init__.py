@@ -200,6 +200,13 @@ def create_app(env_or_config: Optional[str | Dict[str, Any]] = None) -> Flask:
     _validate_secret_key_strength()
     _validate_production_safety()
 
+    try:
+        from backend.hosting_checks import validate_hosting_config
+
+        validate_hosting_config(app)
+    except Exception:
+        raise
+
     configure_logging(app)
     register_error_handlers(app)
 
