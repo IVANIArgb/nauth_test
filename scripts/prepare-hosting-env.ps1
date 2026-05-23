@@ -1,12 +1,23 @@
 #Requires -Version 5.1
-# Hosting .env: SECRET_KEY + LDAP from Windows USERDNSDOMAIN (ASCII-only for PS parser).
+# Sync .env for hosting from Windows domain (every update-all.bat run).
 $ErrorActionPreference = "Stop"
 $Root = (Resolve-Path (Join-Path $PSScriptRoot "..")).Path
 $envPath = Join-Path $Root ".env"
+$tplPath = Join-Path $Root "docker.env.hosting.example"
 
 if (-not (Test-Path $envPath)) {
-    Copy-Item (Join-Path $Root "docker.env.hosting.example") $envPath
-    Write-Host "Created .env from docker.env.hosting.example"
+    if (Test-Path $tplPath) { Copy-Item $tplPath $envPath }
+    else { New-Item -ItemType File -Path $envPath -Force | Out-Null }
+    Write-Host "Created .env"
+}
+
+function Get-EnvKey([string]$key) {
+    foreach ($line in (Get-Content $envPath -Encoding UTF8)) {
+        if ($line -match ('^\s*' + [regex]::Escape($key) + '\s*=\s*(.*)$')) {
+            return $matches[1].Trim()
+        }
+    }
+    return ""
 }
 
 function Set-EnvKey([string]$key, [string]$value) {
@@ -24,10 +35,37 @@ function Set-EnvKey([string]$key, [string]$value) {
     [System.IO.File]::WriteAllLines($envPath, [string[]]$out, $utf8)
 }
 
+function Test-BadLdapPassword([string]$p) {
+    if (-not $p) { return $true }
+    $l = $p.ToLower()
+    return ($l -match 'parol|password|replace|example|zamenite|^<|^$')
+}
+
+function Test-BadLdapUser([string]$u) {
+    if (-not $u) { return $true }
+    return ($u -match 'DOMAIN\\|svc_ldap_read|TVOR_DOMEN')
+}
+
+# --- always refresh hosting defaults ---
+Set-EnvKey 'WEB_PORT' '8080'
+Set-EnvKey 'FLASK_ENV' 'production'
 Set-EnvKey 'TRUST_REMOTE_USER' 'true'
 Set-EnvKey 'TRUST_REMOTE_USER_CONFIRM' 'true'
+Set-EnvKey 'DOCKER_AUTH_FALLBACK' 'false'
+Set-EnvKey 'TEST_MODE' 'false'
 Set-EnvKey 'TERMINAL_ROLE_COMMANDS_ENABLED' 'false'
+Set-EnvKey 'KERBEROS_GSSAPI_ENABLED' 'false'
+Set-EnvKey 'LDAP_ENABLED' 'true'
+Set-EnvKey 'LDAP_USE_SSL' 'false'
+Set-EnvKey 'TRUSTED_PROXY_IPS' '10.0.0.0/8,172.16.0.0/12,127.0.0.1,::1'
 
+$strict = Get-EnvKey 'HOSTING_STRICT_SSO'
+if (-not $strict) {
+    Set-EnvKey 'HOSTING_STRICT_SSO' 'false'
+    Write-Host 'HOSTING_STRICT_SSO=false (local test; set true on server with IIS)'
+}
+
+# --- domain from Windows ---
 if ($env:USERDNSDOMAIN) {
     $dns = $env:USERDNSDOMAIN.Trim()
     if ($env:USERDOMAIN) {
@@ -42,45 +80,38 @@ if ($env:USERDNSDOMAIN) {
     Set-EnvKey 'LDAP_SERVER' ('ldap://' + $dns + ':389')
     Set-EnvKey 'LDAP_BASE_DN' $baseDn
     Set-EnvKey 'KERBEROS_REALM' $realm
-    Write-Host ('LDAP from Windows: ' + $dns + ' / ' + $baseDn + ' / realm=' + $realm)
+    Write-Host ('.env LDAP: ' + $dns + ' | ' + $baseDn + ' | realm=' + $realm)
 } else {
-    Write-Warning 'No USERDNSDOMAIN - set LDAP_* in .env manually'
+    Write-Warning 'No USERDNSDOMAIN - LDAP_SERVER/LDAP_BASE_DN not auto-filled'
 }
 
-$sk = ''
-$ldapPass = ''
-$ldapUser = ''
-foreach ($line in (Get-Content $envPath -Encoding UTF8)) {
-    if ($line -match '^\s*SECRET_KEY\s*=\s*(.*)$') { $sk = $matches[1].Trim() }
-    if ($line -match '^\s*LDAP_PASSWORD\s*=\s*(.*)$') { $ldapPass = $matches[1].Trim() }
-    if ($line -match '^\s*LDAP_USER\s*=\s*(.*)$') { $ldapUser = $matches[1].Trim() }
-}
-
+# --- SECRET_KEY ---
+$sk = Get-EnvKey 'SECRET_KEY'
 $skLow = $sk.ToLower()
-$badSk = ($skLow -match 'zamenite|replace|example|dev-key|not-for-production|password')
-if ((-not $sk) -or $badSk) {
+if ((-not $sk) -or ($skLow -match 'zamenite|replace|example|dev-key|not-for-production')) {
     $bytes = New-Object byte[] 32
     [System.Security.Cryptography.RandomNumberGenerator]::Create().GetBytes($bytes)
-    $newKey = [BitConverter]::ToString($bytes).Replace('-', '').ToLower()
-    Set-EnvKey 'SECRET_KEY' $newKey
+    Set-EnvKey 'SECRET_KEY' ([BitConverter]::ToString($bytes).Replace('-', '').ToLower())
     Write-Host 'SECRET_KEY: auto-generated'
 }
 
-$passLow = $ldapPass.ToLower()
-$badPass = ($passLow -match 'parol|password|replace|example|^$')
-$hasBind = ($ldapUser -and $ldapPass -and (-not $badPass))
-Set-EnvKey 'LDAP_ENABLED' 'true'
+# --- LDAP bind: keep real credentials, suggest template if missing ---
+$ldapUser = Get-EnvKey 'LDAP_USER'
+$ldapPass = Get-EnvKey 'LDAP_PASSWORD'
 
-if (-not $hasBind) {
-    Write-Host ''
-    Write-Host '>>> Add to .env (from AD admin), then run update-hosting.bat again:'
+if (Test-BadLdapUser $ldapUser) {
     if ($env:USERDOMAIN) {
-        Write-Host ('    LDAP_USER=' + $env:USERDOMAIN + '\svc_ldap_read')
-    } else {
-        Write-Host '    LDAP_USER=DOMAIN\svc_ldap_read'
+        Set-EnvKey 'LDAP_USER' ($env:USERDOMAIN + '\svc_ldap_read')
+        Write-Host ('LDAP_USER: ' + $env:USERDOMAIN + '\svc_ldap_read (template - replace if admin gave other login)')
     }
-    Write-Host '    LDAP_PASSWORD=<service account password>'
-    Write-Host ''
+} else {
+    Write-Host ('LDAP_USER: kept ' + $ldapUser)
 }
 
-Write-Host '.env ready'
+if (Test-BadLdapPassword $ldapPass) {
+    Write-Host 'LDAP_PASSWORD: still placeholder - set real password from AD admin in .env'
+} else {
+    Write-Host 'LDAP_PASSWORD: set (kept)'
+}
+
+Write-Host ('.env updated: ' + $envPath)

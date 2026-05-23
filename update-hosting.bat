@@ -12,8 +12,7 @@ if errorlevel 1 goto :gitfail
 git pull --ff-only origin tests
 if errorlevel 1 goto :gitfail
 
-echo [2/5] prepare .env ...
-if not exist ".env" copy /Y "docker.env.hosting.example" ".env"
+echo [2/5] sync .env from Windows domain ...
 powershell.exe -NoLogo -NoProfile -ExecutionPolicy Bypass -File "scripts\prepare-hosting-env.ps1"
 if errorlevel 1 goto :fail
 echo       Edit .env: LDAP_SERVER, LDAP_BASE_DN, LDAP_USER, LDAP_PASSWORD

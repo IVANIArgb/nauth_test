@@ -30,8 +30,7 @@ if exist "requirements-prod.txt" (
 )
 if errorlevel 1 goto :fail
 
-echo [3/7] prepare .env (domain LDAP + SECRET_KEY)...
-if not exist ".env" copy /Y "docker.env.hosting.example" ".env"
+echo [3/7] sync .env (domain, SECRET_KEY, LDAP template)...
 powershell.exe -NoLogo -NoProfile -ExecutionPolicy Bypass -File "scripts\prepare-hosting-env.ps1"
 if errorlevel 1 goto :fail
 
