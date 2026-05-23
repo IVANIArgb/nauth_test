@@ -24,6 +24,16 @@ except ImportError:
     # python-dotenv не установлен, пропускаем
     pass
 
+# Доменный ПК: realm из Windows, не EXAMPLE.COM из скопированного .env
+if sys.platform == "win32":
+    _dom = (os.environ.get("USERDOMAIN") or "").strip()
+    _dns = (os.environ.get("USERDNSDOMAIN") or "").strip()
+    if _dom and _dom.upper() != "WORKGROUP":
+        os.environ["KERBEROS_REALM"] = (_dns or _dom).upper()
+        if not (os.environ.get("DOCKER") or "").strip():
+            os.environ.setdefault("LDAP_ENABLED", "false")
+            os.environ.setdefault("AD_HOST_PROFILE_CACHE_ENABLED", "false")
+
 from .config import get_config
 from .errors import register_error_handlers
 from .routes import register_routes

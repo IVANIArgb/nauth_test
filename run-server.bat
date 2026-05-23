@@ -10,6 +10,11 @@ if /I not "%NAUTH_FORCE_DOCKER%"=="1" (
   if not "%USERDNSDOMAIN%"=="" (
     if exist ".venv\Scripts\activate.bat" (
       echo [mode] Domain PC - native Python + Active Directory
+      powershell.exe -NoLogo -NoProfile -ExecutionPolicy Bypass -File "scripts\sync-native-env-from-windows.ps1"
+      if exist "runtime\ad-cache" (
+        echo [AD] Clearing stale Docker cache for native Get-ADUser...
+        del /q "runtime\ad-cache\*.json" 2>nul
+      )
       call ".venv\Scripts\activate.bat"
       python run.py
       pause

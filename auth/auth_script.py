@@ -266,6 +266,22 @@ def get_username_from_kerberos(auth_header: Optional[str] = None, token: Optiona
     return None
 
 
+def _windows_domain_pc() -> bool:
+    if sys.platform != "win32":
+        return False
+    dom = (os.environ.get("USERDOMAIN") or "").strip().upper()
+    return bool(dom) and dom != "WORKGROUP"
+
+
+def _ad_profile_has_data(profile: dict) -> bool:
+    skip = {"не указано", "ошибка", "error", "none", "null", ""}
+    for key in ("sur_name", "first_name", "second_name", "department", "position"):
+        v = (profile.get(key) or "").strip().lower()
+        if v and v not in skip:
+            return True
+    return False
+
+
 def get_user_info_by_login(login: str) -> dict:
     """
     Функция-обертка: AD через LDAP (контейнер/Linux) или PowerShell Get-ADUser (Windows).
@@ -276,6 +292,17 @@ def get_user_info_by_login(login: str) -> dict:
     Returns:
         dict: Информация о пользователе
     """
+    # Доменный Windows: только живой Get-ADUser (кэш Docker часто с битой кодировкой).
+    if _windows_domain_pc():
+        try:
+            from .ad_user_info import ADUserInfo
+
+            live = ADUserInfo(login).get_user_info()
+            if _ad_profile_has_data(live):
+                return live
+        except Exception:
+            pass
+
     try:
         from auth.ad_host_http import get_user_info_from_host_http
 
@@ -285,14 +312,22 @@ def get_user_info_by_login(login: str) -> dict:
     except Exception:
         pass
 
-    try:
-        from auth.ad_host_cache import get_user_info_from_host_cache
+    cache_ok = (os.environ.get("AD_HOST_PROFILE_CACHE_ENABLED") or "true").strip().lower() in (
+        "true",
+        "1",
+        "yes",
+        "y",
+        "on",
+    )
+    if cache_ok and not _windows_domain_pc():
+        try:
+            from auth.ad_host_cache import get_user_info_from_host_cache
 
-        cached = get_user_info_from_host_cache(login)
-        if cached:
-            return cached
-    except Exception:
-        pass
+            cached = get_user_info_from_host_cache(login)
+            if cached:
+                return cached
+        except Exception:
+            pass
 
     use_ldap = False
     cfg: Optional[Dict[str, Any]] = None
