@@ -116,8 +116,11 @@ def create_app(env_or_config: Optional[str | Dict[str, Any]] = None) -> Flask:
         weak = (
             "not-for-production",
             "замените",
+            "замените_",
+            "replace",
             "dev-key",
             "learnsite-docker",
+            "change_me",
         )
         if not any(m in sk_low for m in weak):
             return

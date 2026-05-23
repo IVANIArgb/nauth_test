@@ -27,9 +27,17 @@ def validate_hosting_config(app) -> None:
     ldap_on = app.config.get("LDAP_ENABLED")
     has_server = bool((app.config.get("LDAP_SERVER") or "").strip())
     has_base = bool((app.config.get("LDAP_BASE_DN") or "").strip())
+    ldap_pass = (app.config.get("LDAP_PASSWORD") or "").strip()
+    ldap_pass_bad = not ldap_pass or ldap_pass.lower() in (
+        "пароль_службы",
+        "password",
+        "replace",
+        "example",
+    ) or "пароль" in ldap_pass.lower() and "служб" in ldap_pass.lower()
     has_bind = bool(
         (app.config.get("LDAP_USER") or app.config.get("LDAP_BIND_DN") or "").strip()
-        and (app.config.get("LDAP_PASSWORD") or "").strip()
+        and ldap_pass
+        and not ldap_pass_bad
     )
     if not (ldap_on and has_server and has_base and has_bind):
         errors.append(

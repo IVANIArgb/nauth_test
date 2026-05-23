@@ -55,6 +55,8 @@ services:
       LANG: C.UTF-8
       LC_ALL: C.UTF-8
       PYTHONUTF8: "1"
+      TERMINAL_ROLE_COMMANDS_ENABLED: "false"
+      ALLOW_TERMINAL_IN_PROD: "false"
     volumes:
       - learnsite_db:/app/database
       - learnsite_content:/app/categories-data
