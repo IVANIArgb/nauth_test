@@ -78,6 +78,6 @@ pause
 exit /b 1
 
 :fail
-echo Failed. Check Docker Desktop and .env LDAP_USER/LDAP_PASSWORD.
+echo Failed. Run diagnose-hosting.bat  (often: LDAP_PASSWORD or Docker not running)
 pause
 exit /b 1

@@ -212,9 +212,18 @@ class NewAuth:
             "domain": domain,
         }
 
+    @staticmethod
+    def _is_auth_exempt_path() -> bool:
+        """Docker/K8s health probes must not require SSO headers."""
+        p = (request.path or "").rstrip("/") or "/"
+        return p == "/healthz"
+
     def _authenticate_user(self):
         """Аутентификация пользователя через новый механизм"""
         try:
+            if self._is_auth_exempt_path():
+                return
+
             test_mode = self._is_test_mode()
             root_test_mode = self._is_root_test_mode()
             auth_header = request.headers.get('Authorization')
