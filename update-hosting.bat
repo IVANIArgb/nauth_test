@@ -38,6 +38,15 @@ echo [5/5] docker compose up -d...
 docker compose %DC% up -d
 if errorlevel 1 goto :fail
 
+timeout /t 8 /nobreak >nul
+docker compose %DC% ps | findstr /i "unhealthy exit"
+if not errorlevel 1 (
+  echo.
+  echo WARNING: web container unhealthy - run diagnose-hosting.bat
+  call "%~dp0diagnose-hosting.bat"
+  exit /b 1
+)
+
 echo.
 echo OK — production hosting stack
 echo   http://localhost:8080/

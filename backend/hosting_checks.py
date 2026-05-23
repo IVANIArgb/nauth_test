@@ -1,10 +1,16 @@
-"""Проверки конфигурации для режима HOSTING_MODE (контейнер на сервере)."""
+"""Checks for HOSTING_MODE (container on server)."""
 from __future__ import annotations
 
 import logging
 import os
+import re
 
 logger = logging.getLogger(__name__)
+
+_LDAP_PASS_PLACEHOLDER = re.compile(
+    r"^(password|replace|example|parol|)$",
+    re.IGNORECASE,
+)
 
 
 def hosting_mode_enabled() -> bool:
@@ -15,46 +21,66 @@ def strict_sso_enabled() -> bool:
     return (os.environ.get("HOSTING_STRICT_SSO") or "").strip().lower() in ("true", "1", "yes", "on")
 
 
+def _require_ldap_bind_at_startup() -> bool:
+    return (os.environ.get("HOSTING_REQUIRE_LDAP_BIND") or "").strip().lower() in (
+        "true",
+        "1",
+        "yes",
+        "on",
+    )
+
+
+def _ldap_bind_ok(app) -> tuple[bool, list[str]]:
+    issues: list[str] = []
+    if not app.config.get("LDAP_ENABLED"):
+        issues.append("LDAP_ENABLED is false")
+        return False, issues
+
+    if not (app.config.get("LDAP_SERVER") or "").strip():
+        issues.append("LDAP_SERVER empty")
+    if not (app.config.get("LDAP_BASE_DN") or "").strip():
+        issues.append("LDAP_BASE_DN empty")
+
+    ldap_pass = (app.config.get("LDAP_PASSWORD") or "").strip()
+    ldap_user = (app.config.get("LDAP_USER") or app.config.get("LDAP_BIND_DN") or "").strip()
+    if not ldap_user:
+        issues.append("LDAP_USER empty")
+    if not ldap_pass or _LDAP_PASS_PLACEHOLDER.match(ldap_pass):
+        issues.append("LDAP_PASSWORD missing or placeholder")
+
+    return len(issues) == 0, issues
+
+
 def validate_hosting_config(app) -> None:
     if not hosting_mode_enabled():
         return
 
-    errors: list[str] = []
+    fatal: list[str] = []
 
     if not app.config.get("TRUST_REMOTE_USER"):
-        errors.append("TRUST_REMOTE_USER must be true")
-
-    ldap_on = app.config.get("LDAP_ENABLED")
-    has_server = bool((app.config.get("LDAP_SERVER") or "").strip())
-    has_base = bool((app.config.get("LDAP_BASE_DN") or "").strip())
-    ldap_pass = (app.config.get("LDAP_PASSWORD") or "").strip()
-    ldap_pass_bad = not ldap_pass or ldap_pass.lower() in (
-        "пароль_службы",
-        "password",
-        "replace",
-        "example",
-    ) or "пароль" in ldap_pass.lower() and "служб" in ldap_pass.lower()
-    has_bind = bool(
-        (app.config.get("LDAP_USER") or app.config.get("LDAP_BIND_DN") or "").strip()
-        and ldap_pass
-        and not ldap_pass_bad
-    )
-    if not (ldap_on and has_server and has_base and has_bind):
-        errors.append(
-            "LDAP_ENABLED, LDAP_SERVER, LDAP_BASE_DN, LDAP_USER/LDAP_BIND_DN, LDAP_PASSWORD required"
-        )
-
+        fatal.append("TRUST_REMOTE_USER must be true")
     if app.config.get("DOCKER_AUTH_FALLBACK"):
-        errors.append("DOCKER_AUTH_FALLBACK must be false on hosting")
-
+        fatal.append("DOCKER_AUTH_FALLBACK must be false on hosting")
     if app.config.get("TEST_MODE"):
-        errors.append("TEST_MODE must be false on hosting")
+        fatal.append("TEST_MODE must be false on hosting")
 
-    if errors:
-        msg = "HOSTING_MODE config invalid: " + "; ".join(errors)
-        logger.error(msg)
-        raise RuntimeError(msg)
+    ldap_ok, ldap_issues = _ldap_bind_ok(app)
+    if not ldap_ok:
+        msg = "LDAP not ready: " + "; ".join(ldap_issues)
+        if _require_ldap_bind_at_startup():
+            fatal.append(msg)
+        else:
+            logger.warning(
+                "%s — container will start; set LDAP_USER/LDAP_PASSWORD in .env and restart for AD profiles",
+                msg,
+            )
 
-    logger.info(
-        "HOSTING_MODE: SSO headers + LDAP profile per user (no keytab, no host AD cache)"
-    )
+    if fatal:
+        text = "HOSTING_MODE config invalid: " + "; ".join(fatal)
+        logger.error(text)
+        raise RuntimeError(text)
+
+    if ldap_ok:
+        logger.info("HOSTING_MODE: SSO headers + LDAP AD profile per user (no keytab)")
+    else:
+        logger.info("HOSTING_MODE: SSO headers only until LDAP bind is configured")

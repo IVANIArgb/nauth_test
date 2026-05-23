@@ -57,6 +57,11 @@ services:
       PYTHONUTF8: "1"
       TERMINAL_ROLE_COMMANDS_ENABLED: "false"
       ALLOW_TERMINAL_IN_PROD: "false"
+      HOSTING_REQUIRE_LDAP_BIND: ${HOSTING_REQUIRE_LDAP_BIND:-false}
+    healthcheck:
+      start_period: 90s
+      interval: 15s
+      retries: 5
     volumes:
       - learnsite_db:/app/database
       - learnsite_content:/app/categories-data
