@@ -690,16 +690,8 @@ def terminal_role_command():
             from datetime import datetime
 
             realm = current_app.config.get("KERBEROS_REALM") or "EXAMPLE.COM"
-            department = (
-                current_user_info.get("department")
-                or os.environ.get("DEFAULT_USER_DEPARTMENT")
-                or ""
-            ).strip()
-            position = (
-                current_user_info.get("position")
-                or os.environ.get("DEFAULT_USER_POSITION")
-                or ""
-            ).strip()
+            department = (current_user_info.get("department") or os.environ.get("DEFAULT_USER_DEPARTMENT") or "GUEST").strip()
+            position = (current_user_info.get("position") or os.environ.get("DEFAULT_USER_POSITION") or "").strip()
 
             user = User(
                 username=username,

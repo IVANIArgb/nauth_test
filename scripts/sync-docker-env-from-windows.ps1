@@ -16,7 +16,8 @@ function Set-EnvKey([string]$key, [string]$value) {
         } else { $line }
     }
     if (-not $found) { $out += "$key=$value" }
-    $out | Set-Content $envPath -Encoding UTF8
+    $utf8 = New-Object System.Text.UTF8Encoding $false
+    [System.IO.File]::WriteAllLines($envPath, [string[]]$out, $utf8)
 }
 
 if (-not (Test-Path $envPath)) {
@@ -33,16 +34,30 @@ Set-EnvKey "DOCKER_AUTH_FALLBACK" "false"
 Set-EnvKey "KERBEROS_GSSAPI_ENABLED" "false"
 Set-EnvKey "AD_HOST_PROFILE_CACHE_ENABLED" "true"
 Set-EnvKey "AD_HOST_PROFILE_CACHE_DIR" "/app/runtime/ad-cache"
-Set-EnvKey "AD_HOST_PROFILE_URL" "http://host.docker.internal:18080"
+
+$ldapUser = ""
+$ldapPass = ""
+foreach ($line in (Get-Content $envPath -Encoding UTF8 -ErrorAction SilentlyContinue)) {
+    if ($line -match '^\s*LDAP_USER\s*=\s*(.*)$') { $ldapUser = $matches[1].Trim() }
+    if ($line -match '^\s*LDAP_BIND_DN\s*=\s*(.*)$') { if (-not $ldapUser) { $ldapUser = $matches[1].Trim() } }
+    if ($line -match '^\s*LDAP_PASSWORD\s*=\s*(.*)$') { $ldapPass = $matches[1].Trim() }
+}
 
 if ($env:USERDNSDOMAIN) {
     $dns = $env:USERDNSDOMAIN.Trim()
-    Set-EnvKey "LDAP_ENABLED" "true"
+    Set-EnvKey "AD_DNS_DOMAIN" $dns
     Set-EnvKey "LDAP_SERVER" "ldap://$dns`:389"
     $parts = $dns.Split(".") | ForEach-Object { "DC=$_" }
     Set-EnvKey "LDAP_BASE_DN" ($parts -join ",")
     if ($env:USERDOMAIN) { Set-EnvKey "KERBEROS_REALM" ($env:USERDOMAIN.ToUpper()) }
-    Write-Host ".env: SSO=$login LDAP=$dns (auto)"
+    $hasBind = ($ldapUser -and $ldapPass -and $ldapPass -notmatch 'ПАРОЛЬ|PASSWORD|замените|REPLACE')
+    if ($hasBind) {
+        Set-EnvKey "LDAP_ENABLED" "true"
+        Write-Host ".env: SSO=$login LDAP=$dns (bind OK)"
+    } else {
+        Set-EnvKey "LDAP_ENABLED" "false"
+        Write-Host ".env: SSO=$login AD cache + LDAP off (no LDAP_USER/PASSWORD)"
+    }
 } else {
     Set-EnvKey "LDAP_ENABLED" "false"
     Write-Host ".env: SSO=$login (no domain - AD cache only if refresh OK)"

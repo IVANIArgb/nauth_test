@@ -6,6 +6,8 @@ import os
 import re
 from typing import Any, Dict, Optional
 
+from auth.encoding_utils import normalize_ad_text
+
 _CACHE_RE = re.compile(r"^[a-z0-9._-]{1,128}$")
 
 
@@ -28,7 +30,7 @@ def _normalize_login(login: str) -> Optional[str]:
 def _clean_field(value: Any) -> str:
     if value is None:
         return ""
-    s = str(value).strip()
+    s = normalize_ad_text(value)
     if s.lower() in ("не указано", "ошибка", "error", "none", "null", ""):
         return ""
     return s
@@ -47,7 +49,7 @@ def get_user_info_from_host_cache(login: str) -> Optional[Dict[str, str]]:
     if not os.path.isfile(path):
         return None
     try:
-        with open(path, "r", encoding="utf-8") as f:
+        with open(path, "r", encoding="utf-8-sig") as f:
             raw = json.load(f)
     except (OSError, json.JSONDecodeError):
         return None
@@ -59,6 +61,7 @@ def get_user_info_from_host_cache(login: str) -> Optional[Dict[str, str]]:
         "sur_name": _clean_field(raw.get("sur_name")),
         "department": _clean_field(raw.get("department")),
         "position": _clean_field(raw.get("position")),
+        "email": _clean_field(raw.get("email") or raw.get("mail")),
     }
     if not any(out.values()):
         return None

@@ -24,16 +24,6 @@ except ImportError:
     # python-dotenv не установлен, пропускаем
     pass
 
-# Доменный ПК: realm из Windows, не EXAMPLE.COM из скопированного .env
-if sys.platform == "win32":
-    _dom = (os.environ.get("USERDOMAIN") or "").strip()
-    _dns = (os.environ.get("USERDNSDOMAIN") or "").strip()
-    if _dom and _dom.upper() != "WORKGROUP":
-        os.environ["KERBEROS_REALM"] = (_dns or _dom).upper()
-        if not (os.environ.get("DOCKER") or "").strip():
-            os.environ.setdefault("LDAP_ENABLED", "false")
-            os.environ.setdefault("AD_HOST_PROFILE_CACHE_ENABLED", "false")
-
 from .config import get_config
 from .errors import register_error_handlers
 from .routes import register_routes
@@ -291,6 +281,13 @@ def create_app(env_or_config: Optional[str | Dict[str, Any]] = None) -> Flask:
     csrf.exempt(api_bp)
     
     register_routes(app)
+
+    @app.after_request
+    def _ensure_json_utf8_charset(response):
+        ct = response.headers.get("Content-Type") or ""
+        if response.mimetype == "application/json" and "charset" not in ct.lower():
+            response.headers["Content-Type"] = "application/json; charset=utf-8"
+        return response
 
     def _log_deployment_profile() -> None:
         """Один раз при старте: среда, контент, auth — чтобы корпоративный и домашний ПК было проще сравнить."""

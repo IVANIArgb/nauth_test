@@ -1,14 +1,13 @@
 """
 Модуль для получения информации о пользователе из Active Directory.
 """
-import json
-import logging
-import os
-import re
 import subprocess
+import json
+import re
+import logging
 from typing import Dict, Optional
 
-from auth.ad_ps_output import decode_powershell_stdout
+from auth.encoding_utils import POWERSHELL_UTF8_PREFIX, decode_subprocess_stdout, normalize_ad_text
 
 logger = logging.getLogger(__name__)
 
@@ -68,58 +67,28 @@ class ADUserInfo:
         Returns:
             bool: Успешно ли получены данные
         """
-        root = os.path.abspath(os.path.join(os.path.dirname(__file__), os.pardir))
-        ps1 = os.path.join(root, "scripts", "get-ad-user-json.ps1")
-        if os.path.isfile(ps1):
-            try:
-                proc = subprocess.run(
-                    [
-                        "powershell.exe",
-                        "-NoLogo",
-                        "-NoProfile",
-                        "-ExecutionPolicy",
-                        "Bypass",
-                        "-File",
-                        ps1,
-                        self.login,
-                    ],
-                    capture_output=True,
-                    timeout=60,
-                    cwd=root,
-                )
-                if proc.returncode == 0 and proc.stdout.strip():
-                    text = decode_powershell_stdout(proc.stdout)
-                    data = json.loads(text.strip())
-                    self.user_data = {
-                        "GivenName": data.get("first_name"),
-                        "Surname": data.get("sur_name"),
-                        "MiddleName": data.get("second_name"),
-                        "Department": data.get("department"),
-                        "Title": data.get("position"),
-                    }
-                    return True
-            except Exception:
-                pass
-
+        # -Filter вместо -Identity: логин уже ограничен sanitize_ad_login (без кавычек и спецсимволов).
         login_escaped = self.login.replace("'", "''")
         command = (
-            f"$u = '{login_escaped}'; "
-            "Get-ADUser -Filter \"sAMAccountName -eq '$u'\" "
-            "-Properties GivenName,Surname,MiddleName,Name,DisplayName,Department,Title,Company,Office,Description "
-            "| Select-Object GivenName,Surname,MiddleName,Name,DisplayName,Department,Title,Company,Office,Description "
-            "| ConvertTo-Json -Depth 1 -Compress"
+            POWERSHELL_UTF8_PREFIX
+            + f"$u = '{login_escaped}'; "
+            + "Get-ADUser -Filter \"sAMAccountName -eq '$u'\" -Properties GivenName, Surname, MiddleName, Name, "
+            + "DisplayName, Department, Title, Company, Office, Description, Mail | "
+            + "Select-Object GivenName, Surname, MiddleName, Name, DisplayName, "
+            + "Department, Title, Company, Office, Description, Mail | "
+            + "ConvertTo-Json -Depth 1 -Compress"
         )
 
         try:
             result = subprocess.run(
-                ["powershell.exe", "-NoLogo", "-NoProfile", "-Command", command],
+                ["powershell", "-NoProfile", "-Command", command],
                 capture_output=True,
                 timeout=20,
             )
 
             if result.returncode == 0 and result.stdout.strip():
-                text = decode_powershell_stdout(result.stdout)
-                self.user_data = json.loads(text.strip())
+                out = decode_subprocess_stdout(result.stdout)
+                self.user_data = json.loads(out)
                 return True
             return False
 
@@ -129,9 +98,12 @@ class ADUserInfo:
     def _extract_basic_info(self):
         """Извлекает основную информацию о пользователе"""
         # Получаем основные данные из стандартных атрибутов (безопасная обработка None)
-        self.result['first_name'] = self.user_data.get('GivenName') or ''
-        self.result['sur_name'] = self.user_data.get('Surname') or ''
-        self.result['second_name'] = self.user_data.get('MiddleName') or ''
+        self.result['first_name'] = normalize_ad_text(self.user_data.get('GivenName'))
+        self.result['sur_name'] = normalize_ad_text(self.user_data.get('Surname'))
+        self.result['second_name'] = normalize_ad_text(self.user_data.get('MiddleName'))
+        mail = normalize_ad_text(self.user_data.get('Mail'))
+        if mail:
+            self.result['email'] = mail
 
         # Если имя или фамилия не найдены, пробуем извлечь из полного имени
         full_name = self.user_data.get('Name') or ''
@@ -160,19 +132,19 @@ class ADUserInfo:
 
     def _extract_department(self):
         """Извлекает информацию об отделе"""
-        department = self.user_data.get('Department') or ''
+        department = normalize_ad_text(self.user_data.get('Department'))
         if department:
             self.result['department'] = department
         else:
-            self.result['department'] = self._find_department_in_attributes()
+            self.result['department'] = normalize_ad_text(self._find_department_in_attributes())
 
     def _extract_position(self):
         """Извлекает информацию о должности"""
-        position = self.user_data.get('Title') or ''
+        position = normalize_ad_text(self.user_data.get('Title'))
         if position:
             self.result['position'] = position
         else:
-            self.result['position'] = self._find_position_in_attributes()
+            self.result['position'] = normalize_ad_text(self._find_position_in_attributes())
 
     def _find_middle_name_in_attributes(self) -> str:
         """

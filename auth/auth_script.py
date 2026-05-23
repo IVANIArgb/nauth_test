@@ -266,96 +266,21 @@ def get_username_from_kerberos(auth_header: Optional[str] = None, token: Optiona
     return None
 
 
-def _windows_domain_pc() -> bool:
-    if sys.platform != "win32":
-        return False
-    dom = (os.environ.get("USERDOMAIN") or "").strip().upper()
-    return bool(dom) and dom != "WORKGROUP"
-
-
-def _ad_profile_has_data(profile: dict) -> bool:
-    skip = {"не указано", "ошибка", "error", "none", "null", ""}
-    for key in ("sur_name", "first_name", "second_name", "department", "position"):
-        v = (profile.get(key) or "").strip().lower()
-        if v and v not in skip:
-            return True
-    return False
-
-
 def get_user_info_by_login(login: str) -> dict:
     """
-    Функция-обертка: AD через LDAP (контейнер/Linux) или PowerShell Get-ADUser (Windows).
-
-    Args:
-        login: Логин пользователя
-
-    Returns:
-        dict: Информация о пользователе
+    Профиль из AD: host cache (Docker) -> LDAP (если bind) -> Get-ADUser (Windows).
     """
-    # Доменный Windows: только живой Get-ADUser (кэш Docker часто с битой кодировкой).
-    if _windows_domain_pc():
-        try:
-            from .ad_user_info import ADUserInfo
-
-            live = ADUserInfo(login).get_user_info()
-            if _ad_profile_has_data(live):
-                return live
-        except Exception:
-            pass
-
-    try:
-        from auth.ad_host_http import get_user_info_from_host_http
-
-        http_profile = get_user_info_from_host_http(login)
-        if http_profile:
-            return http_profile
-    except Exception:
-        pass
-
-    cache_ok = (os.environ.get("AD_HOST_PROFILE_CACHE_ENABLED") or "true").strip().lower() in (
-        "true",
-        "1",
-        "yes",
-        "y",
-        "on",
-    )
-    if cache_ok and not _windows_domain_pc():
-        try:
-            from auth.ad_host_cache import get_user_info_from_host_cache
-
-            cached = get_user_info_from_host_cache(login)
-            if cached:
-                return cached
-        except Exception:
-            pass
-
-    use_ldap = False
     cfg: Optional[Dict[str, Any]] = None
     try:
         from flask import has_app_context, current_app
 
         if has_app_context():
             cfg = current_app.config
-            if cfg.get("LDAP_ENABLED") and cfg.get("LDAP_SERVER") and cfg.get("LDAP_BASE_DN"):
-                use_ldap = True
     except Exception:
         pass
-    if not use_ldap:
-        if (
-            os.environ.get("LDAP_ENABLED", "false").lower() in ("true", "1", "yes")
-            and os.environ.get("LDAP_SERVER", "").strip()
-            and os.environ.get("LDAP_BASE_DN", "").strip()
-        ):
-            use_ldap = True
+    from auth.ad_profile_resolver import resolve_ad_profile
 
-    if use_ldap:
-        from auth.ldap_ad_user import get_user_info_ldap
-
-        return get_user_info_ldap(login, cfg)
-
-    from .ad_user_info import ADUserInfo
-    user_info = ADUserInfo(login)
-    return user_info.get_user_info()
+    return resolve_ad_profile(login, cfg)
 
 
 

@@ -12,7 +12,8 @@ from datetime import datetime
 from flask import request, g, current_app
 
 from auth.auth_script import get_username_from_kerberos
-from auth.ad_user_info import get_user_info_by_login
+from auth.ad_profile_resolver import resolve_ad_profile
+from auth.encoding_utils import normalize_ad_text
 from auth.trusted_proxy import is_trusted_proxy_ip, request_client_ip
 
 
@@ -28,71 +29,10 @@ class NewAuth:
     def init_app(self, app):
         """Инициализация аутентификации"""
         self.app = app
-        self.realm = self._effective_realm(app)
+        self.realm = app.config.get('KERBEROS_REALM', 'EXAMPLE.COM')
+        
+        # Регистрация обработчиков
         app.before_request(self._authenticate_user)
-
-    @staticmethod
-    def _is_placeholder_realm(realm: str) -> bool:
-        r = (realm or "").strip().upper()
-        return not r or r in ("EXAMPLE.COM", "LOCAL", "LOCALHOST")
-
-    @staticmethod
-    def _is_placeholder_email(email: str) -> bool:
-        e = (email or "").strip().lower()
-        return not e or e.endswith("@company.com") or e.endswith("@example.com")
-
-    def _effective_realm(self, app=None) -> str:
-        """Реальный домен Windows/AD, не демо EXAMPLE.COM из .env."""
-        dns = (os.environ.get("USERDNSDOMAIN") or "").strip()
-        if dns:
-            return dns.upper()
-        dom = (os.environ.get("USERDOMAIN") or "").strip()
-        if dom:
-            return dom.upper()
-        cfg_realm = ""
-        try:
-            if app is not None:
-                cfg_realm = (app.config.get("KERBEROS_REALM") or "").strip()
-            else:
-                cfg_realm = (current_app.config.get("KERBEROS_REALM") or "").strip()
-        except Exception:
-            cfg_realm = (os.environ.get("KERBEROS_REALM") or "").strip()
-        if cfg_realm and not self._is_placeholder_realm(cfg_realm):
-            return cfg_realm.upper()
-        return "EXAMPLE.COM"
-
-    @staticmethod
-    def finalize_user_identity_payload(payload: dict, username: str) -> None:
-        """Подставить realm/principal/email из domain Windows, если остались демо-значения."""
-        dom = (payload.get("domain") or "").strip()
-        if not dom or dom.upper() == "LOCAL":
-            return
-        realm = dom.upper()
-        un = (username or payload.get("username") or "").strip().lower()
-        if not un:
-            return
-        if NewAuth._is_placeholder_realm(payload.get("realm", "")):
-            payload["realm"] = realm
-        pr = (payload.get("principal") or "").strip()
-        if not pr or "@EXAMPLE.COM" in pr.upper() or NewAuth._is_placeholder_realm(
-            pr.split("@")[-1] if "@" in pr else ""
-        ):
-            payload["principal"] = f"{un}@{realm}"
-        if NewAuth._is_placeholder_email(payload.get("email", "")):
-            dns = (os.environ.get("USERDNSDOMAIN") or "").strip().lower()
-            payload["email"] = f"{un}@{dns or dom.lower()}"
-
-    def _email_for_user(self, username: str) -> str:
-        dns = (os.environ.get("USERDNSDOMAIN") or "").strip().lower()
-        if dns:
-            return f"{username.lower()}@{dns}"
-        dom = (os.environ.get("USERDOMAIN") or "").strip().lower()
-        if dom:
-            return f"{username.lower()}@{dom}"
-        realm = self._effective_realm()
-        if not self._is_placeholder_realm(realm):
-            return f"{username.lower()}@{realm.lower()}"
-        return f"{username.lower()}@local"
 
     def _is_test_mode(self) -> bool:
         """Тестовый режим: все пользователи считаются admin.
@@ -198,31 +138,73 @@ class NewAuth:
             return None
         return u.lower()
 
-    def _ad_lookup_available(self) -> bool:
-        """LDAP, кэш с хоста, HTTP API хоста или Get-ADUser на Windows."""
-        if (os.environ.get("AD_HOST_PROFILE_URL") or "").strip():
-            return True
-        cache_on = (os.environ.get("AD_HOST_PROFILE_CACHE_ENABLED") or "true").strip().lower()
-        if cache_on in ("true", "1", "yes", "y", "on"):
-            return True
-        try:
-            if current_app.config.get("LDAP_ENABLED"):
-                if current_app.config.get("LDAP_SERVER") and current_app.config.get("LDAP_BASE_DN"):
-                    return True
-        except Exception:
-            pass
-        if sys.platform == "win32" and shutil.which("powershell"):
-            return True
-        return False
+    def _build_profile_fields(
+        self,
+        username: str,
+        ad_info: Dict[str, str],
+        db_user: Any = None,
+    ) -> Dict[str, str]:
+        """AD важнее БД; заглушки GUEST/логин не перекрывают реальные данные из AD."""
+        ad = ad_info or {}
+
+        def from_ad(key: str) -> str:
+            return self._clean_ad_value(ad.get(key, ""))
+
+        def from_db(attr: str) -> str:
+            if not db_user:
+                return ""
+            return self._clean_ad_value(getattr(db_user, attr, "") or "")
+
+        def pick(ad_key: str, db_attr: str) -> str:
+            av = from_ad(ad_key)
+            if av and not self._is_placeholder_profile_field(av):
+                return av
+            dv = from_db(db_attr)
+            if dv and not self._is_placeholder_profile_field(dv):
+                return dv
+            return ""
+
+        surname = pick("sur_name", "surname")
+        fst_name = pick("first_name", "fst_name")
+        sec_name = pick("second_name", "sec_name")
+        department = pick("department", "department")
+        position = pick("position", "position")
+        full_name = " ".join(p for p in (surname, fst_name, sec_name) if p).strip()
+        if not full_name:
+            fn_db = from_db("full_name")
+            full_name = fn_db if fn_db and not self._is_placeholder_profile_field(fn_db) else username
+
+        email_ad = from_ad("email")
+        if email_ad and "@" in email_ad:
+            email = email_ad
+        elif db_user and getattr(db_user, "email", None):
+            email = self._clean_ad_value(db_user.email)
+        else:
+            email = f"{username.lower()}@company.com"
+
+        realm = (os.environ.get("KERBEROS_REALM") or self.realm or "EXAMPLE.COM").strip()
+        domain = (
+            os.environ.get("AD_DNS_DOMAIN")
+            or os.environ.get("USERDNSDOMAIN")
+            or os.environ.get("USERDOMAIN")
+            or "LOCAL"
+        ).strip()
+
+        return {
+            "surname": surname,
+            "fst_name": fst_name,
+            "sec_name": sec_name,
+            "department": department,
+            "position": position,
+            "full_name": full_name,
+            "email": email,
+            "realm": realm,
+            "domain": domain,
+        }
 
     def _authenticate_user(self):
         """Аутентификация пользователя через новый механизм"""
         try:
-            self.realm = self._effective_realm()
-            if self._is_placeholder_realm(self.realm):
-                dom = (os.environ.get("USERDOMAIN") or "").strip()
-                if dom:
-                    self.realm = dom.upper()
             test_mode = self._is_test_mode()
             root_test_mode = self._is_root_test_mode()
             auth_header = request.headers.get('Authorization')
@@ -265,50 +247,52 @@ class NewAuth:
                 }
                 return
             
-            # AD: SSO и доменный Windows-ПК — всегда Get-ADUser; TEST_MODE не отключает AD на GIPROTNG
-            domain_pc = (
-                sys.platform == "win32"
-                and (os.environ.get("USERDOMAIN") or "").strip().upper() not in ("", "WORKGROUP")
-            )
             skip_ad = (
-                not from_trusted_proxy
-                and not domain_pc
-                and (
-                    (test_mode or from_docker_fallback or (root_test_mode and not from_trusted_proxy))
-                    or not self._ad_lookup_available()
-                )
-            )
+                test_mode or from_docker_fallback or (root_test_mode and not from_trusted_proxy)
+            ) and not from_trusted_proxy
             ad_info: Dict[str, str] = {}
             if not skip_ad:
                 try:
-                    ad_info_raw = get_user_info_by_login(username)
-                    ad_info = self._validate_and_clean_ad_info(ad_info_raw)
+                    cfg = None
+                    try:
+                        cfg = current_app.config
+                    except Exception:
+                        pass
+                    ad_info = self._validate_and_clean_ad_info(
+                        resolve_ad_profile(username, cfg)
+                    )
                 except Exception:
                     ad_info = {}
 
-            self._auto_register_user(username, ad_info, force_from_ad=bool(ad_info))
-
-            role = self._determine_user_role(username)
-
             from database.models import db_manager, User
+
             session = db_manager.get_session()
             try:
                 db_user = session.query(User).filter(User.username == username.lower()).first()
-                surname, fst_name, sec_name, department, position, full_name = self._resolve_profile_fields(
-                    db_user, ad_info, username
-                )
             finally:
                 session.close()
 
+            self._auto_register_user(username, ad_info)
+
+            role = self._determine_user_role(username)
+
+            session = db_manager.get_session()
+            try:
+                db_user = session.query(User).filter(User.username == username.lower()).first()
+            finally:
+                session.close()
+
+            profile = self._build_profile_fields(username, ad_info, db_user)
+
             g.user_info = {
                 'username': username.lower(),
-                'full_name': full_name,
-                'surname': surname,
-                'fst_name': fst_name,
-                'sec_name': sec_name,
-                'department': department,
-                'position': position,
-                'email': self._email_for_user(username),
+                'full_name': profile["full_name"],
+                'surname': profile["surname"],
+                'fst_name': profile["fst_name"],
+                'sec_name': profile["sec_name"],
+                'department': profile["department"],
+                'position': profile["position"],
+                'email': profile["email"],
                 'role': role,
                 'auth_method': (
                     'trusted_proxy'
@@ -332,9 +316,10 @@ class NewAuth:
                     )
                 ),
                 'ip_address': request.remote_addr,
-                'domain': (os.environ.get('USERDOMAIN') or os.environ.get('USERDNSDOMAIN') or 'LOCAL'),
-                'principal': f"{username.lower()}@{self.realm}",
-                'realm': self.realm,
+                'domain': profile["domain"],
+                'principal': f"{username.lower()}@{profile['realm']}",
+                'realm': profile["realm"],
+                'ad_synced': bool(any(ad_info.values())),
             }
             
             
@@ -352,37 +337,6 @@ class NewAuth:
                 'ip_address': request.remote_addr
             }
     
-    def _resolve_profile_fields(
-        self,
-        db_user: Any,
-        ad_info: Dict[str, str],
-        username: str,
-    ) -> tuple:
-        """AD важнее БД, если в БД остались GUEST/пусто/логин вместо ФИО."""
-        def pick(ad_key: str, db_attr: str) -> str:
-            ad_val = self._clean_ad_value(ad_info.get(ad_key, ""))
-            db_val = ""
-            if db_user is not None:
-                db_val = self._clean_ad_value(getattr(db_user, db_attr, "") or "")
-            if ad_val:
-                return ad_val
-            if db_val and not self._is_placeholder_profile_field(db_val):
-                return db_val
-            return ad_val or db_val or ""
-
-        surname = pick("sur_name", "surname")
-        fst_name = pick("first_name", "fst_name")
-        sec_name = pick("second_name", "sec_name")
-        department = pick("department", "department")
-        position = pick("position", "position")
-        parts = [surname, fst_name, sec_name]
-        full_name = " ".join(p for p in parts if p).strip()
-        if not full_name and db_user is not None:
-            full_name = db_user._get_full_name_from_parts() or self._clean_ad_value(db_user.full_name) or ""
-        if not full_name or self._is_placeholder_profile_field(full_name) or full_name == username:
-            full_name = " ".join(p for p in parts if p).strip() or username
-        return surname, fst_name, sec_name, department, position, full_name
-
     @staticmethod
     def _is_placeholder_profile_field(value: Any) -> bool:
         """Пустые/демо-значения, которые можно заменить данными из AD."""
@@ -432,10 +386,10 @@ class NewAuth:
         if value and (value.isdigit() and len(value) <= 3) or (not any(c.isalnum() for c in value)):
             return ''
         
-        # Убираем невидимые символы и мусор
-        value = ''.join(c for c in value if c.isprintable() or c.isspace())
-        value = value.strip()
-        
+        # Убираем невидимые символы и мусор (кириллица сохраняется)
+        value = "".join(c for c in value if c.isprintable() or c.isspace())
+        value = normalize_ad_text(value.strip())
+
         return value
     
     def _validate_and_clean_ad_info(self, ad_info: Dict[str, Any]) -> Dict[str, str]:
@@ -493,7 +447,7 @@ class NewAuth:
         except Exception as e:
             return 'user'
     
-    def _auto_register_user(self, username: str, ad_info: Dict[str, str], force_from_ad: bool = False):
+    def _auto_register_user(self, username: str, ad_info: Dict[str, str]):
         """Автоматическая регистрация пользователя в БД с данными из AD"""
         try:
             from database.models import db_manager, User
@@ -510,11 +464,8 @@ class NewAuth:
                 fst_name = self._clean_ad_value(ad_info.get('first_name', ''))
                 sec_name = self._clean_ad_value(ad_info.get('second_name', ''))
                 department = self._clean_ad_value(ad_info.get('department', ''))
-                if not department and not force_from_ad:
-                    department = os.environ.get('DEFAULT_USER_DEPARTMENT', '') or ''
                 position = self._clean_ad_value(ad_info.get('position', ''))
-                if not position and not force_from_ad:
-                    position = os.environ.get('DEFAULT_USER_POSITION', '') or ''
+                email_ad = self._clean_ad_value(ad_info.get('email', ''))
                 
                 # В TEST_MODE мы не ходим в AD, поэтому ФИО может быть пустым.
                 # Чтобы UI "видел всё о пользователе", дергаем ФИО из логина (например: ivan.petrov).
@@ -557,37 +508,34 @@ class NewAuth:
                 role = self._determine_user_role(username)
                 
                 if existing_user:
+                    # Обновляем существующего пользователя - обновляем если новое значение валидное
                     updated = False
-                    force = force_from_ad and any(
-                        (surname, fst_name, sec_name, department, position)
-                    )
-
-                    if surname and (force or surname != existing_user.surname):
+                    
+                    # Обновляем surname если новое значение валидное и отличается
+                    if surname and surname != existing_user.surname:
                         existing_user.surname = surname
                         updated = True
                     
                     # Обновляем fst_name если новое значение валидное и отличается
-                    if fst_name and (force or fst_name != existing_user.fst_name):
+                    if fst_name and fst_name != existing_user.fst_name:
                         existing_user.fst_name = fst_name
                         updated = True
                     
                     # Обновляем sec_name если новое значение валидное и отличается
-                    if sec_name and (force or sec_name != existing_user.sec_name):
+                    if sec_name and sec_name != existing_user.sec_name:
                         existing_user.sec_name = sec_name
                         updated = True
                     
                     # Обновляем department/position: и при смене, и если в БД остался GUEST/пусто
                     if department and (
-                        force
-                        or department != existing_user.department
+                        department != existing_user.department
                         or self._is_placeholder_profile_field(existing_user.department)
                     ):
                         existing_user.department = department
                         updated = True
 
                     if position and (
-                        force
-                        or position != existing_user.position
+                        position != existing_user.position
                         or self._is_placeholder_profile_field(existing_user.position)
                     ):
                         existing_user.position = position
@@ -595,28 +543,19 @@ class NewAuth:
 
                     new_full_name = ' '.join(part for part in [surname, fst_name, sec_name] if part).strip() or username
                     if new_full_name and (
-                        force
-                        or new_full_name != (existing_user.full_name or '')
+                        new_full_name != (existing_user.full_name or '')
                         or existing_user.full_name == username
                         or self._is_placeholder_profile_field(existing_user.full_name)
                     ):
                         existing_user.full_name = new_full_name
                         updated = True
-                    
-                    new_email = self._email_for_user(username)
-                    if new_email and (
-                        self._is_placeholder_email(existing_user.email or "")
-                        or existing_user.email != new_email
-                    ):
-                        existing_user.email = new_email
-                        updated = True
 
-                    if (
-                        self._is_placeholder_realm(existing_user.realm or "")
-                        or existing_user.realm != self.realm
-                        or not existing_user.principal
-                        or "@EXAMPLE.COM" in (existing_user.principal or "").upper()
-                    ):
+                    if email_ad and "@" in email_ad and email_ad != (existing_user.email or ""):
+                        existing_user.email = email_ad
+                        updated = True
+                    
+                    # Обновляем principal и realm если не установлены
+                    if not existing_user.principal:
                         existing_user.principal = f"{username.lower()}@{self.realm}"
                         existing_user.realm = self.realm
                         updated = True
@@ -628,6 +567,7 @@ class NewAuth:
                         session.commit()
                 else:
                     # Создаем нового пользователя с очищенными данными
+                    email = email_ad if email_ad and "@" in email_ad else f"{username.lower()}@company.com"
                     new_user = User(
                         username=username.lower(),
                         full_name=full_name,
@@ -636,7 +576,7 @@ class NewAuth:
                         sec_name=sec_name,
                         department=department,
                         position=position,
-                        email=self._email_for_user(username),
+                        email=email,
                         principal=f"{username.lower()}@{self.realm}",
                         realm=self.realm,
                         role=role,

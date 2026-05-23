@@ -9,22 +9,7 @@ import sys
 from typing import Optional
 
 
-def _decode_powershell_stdout(raw: bytes) -> str:
-    if not raw:
-        return ""
-    raw = raw.replace(b"\r\n", b"\n").replace(b"\r", b"\n")
-    if raw.startswith(b"\xff\xfe"):
-        return raw[2:].decode("utf-16-le", errors="replace").strip()
-    if raw.startswith(b"\xfe\xff"):
-        return raw[2:].decode("utf-16-be", errors="replace").strip()
-    for enc in ("utf-8-sig", "utf-8", "cp866", "cp1251"):
-        try:
-            s = raw.decode(enc).strip()
-            if s:
-                return s
-        except UnicodeDecodeError:
-            continue
-    return raw.decode("utf-8", errors="replace").strip()
+from auth.encoding_utils import POWERSHELL_UTF8_PREFIX, decode_subprocess_stdout as _decode_powershell_stdout
 
 
 def current_logon_name() -> str:
@@ -32,10 +17,7 @@ def current_logon_name() -> str:
     if sys.platform != "win32":
         return (os.environ.get("USER") or os.environ.get("USERNAME") or "").strip()
 
-    cmd = (
-        "[Console]::OutputEncoding = [System.Text.UTF8Encoding]::new($false); "
-        "[System.Security.Principal.WindowsIdentity]::GetCurrent().Name"
-    )
+    cmd = POWERSHELL_UTF8_PREFIX + "[System.Security.Principal.WindowsIdentity]::GetCurrent().Name"
     try:
         r = subprocess.run(
             ["powershell", "-NoProfile", "-Command", cmd],

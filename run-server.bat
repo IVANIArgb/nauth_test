@@ -10,11 +10,6 @@ if /I not "%NAUTH_FORCE_DOCKER%"=="1" (
   if not "%USERDNSDOMAIN%"=="" (
     if exist ".venv\Scripts\activate.bat" (
       echo [mode] Domain PC - native Python + Active Directory
-      powershell.exe -NoLogo -NoProfile -ExecutionPolicy Bypass -File "scripts\sync-native-env-from-windows.ps1"
-      if exist "runtime\ad-cache" (
-        echo [AD] Clearing stale Docker cache for native Get-ADUser...
-        del /q "runtime\ad-cache\*.json" 2>nul
-      )
       call ".venv\Scripts\activate.bat"
       python run.py
       pause
@@ -34,18 +29,15 @@ echo [mode] Docker SSO + AD from Windows host
 
 if not exist "runtime\ad-cache" mkdir "runtime\ad-cache"
 
-if not "%USERDNSDOMAIN%"=="" (
-  if exist ".venv\Scripts\python.exe" (
-    echo [AD] Host profile API http://127.0.0.1:18080
-    start "NAUTH-AD-API" /MIN "" ".venv\Scripts\python.exe" scripts\host_ad_profile_api.py
-    ping -n 3 127.0.0.1 >nul
-  )
-)
-
 powershell.exe -NoLogo -NoProfile -ExecutionPolicy Bypass -File "scripts\sync-docker-env-from-windows.ps1"
-powershell.exe -NoLogo -NoProfile -ExecutionPolicy Bypass -File "scripts\refresh-ad-profile-cache.ps1"
+powershell.exe -NoLogo -NoProfile -ExecutionPolicy Bypass -File "scripts\refresh-ad-profile-cache.ps1" -Login "%USERNAME%"
 if errorlevel 1 (
-  echo WARNING: AD cache failed - profile may be empty. Run on domain-joined PC.
+  if not "%USERDNSDOMAIN%"=="" (
+    echo ERROR: AD profile cache failed. Run on domain PC as %USERNAME%.
+    pause
+    exit /b 1
+  )
+  echo WARNING: AD cache skipped - not domain PC.
 )
 
 set "DC=-f docker-compose.yml"
@@ -56,7 +48,8 @@ echo [1/2] docker compose build ...
 docker compose %DC% build
 if errorlevel 1 goto :fail
 
-echo [2/2] docker compose up -d ...
+echo [2/2] docker compose down + up -d ...
+docker compose %DC% down
 docker compose %DC% up -d
 if errorlevel 1 goto :fail
 

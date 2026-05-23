@@ -8,6 +8,8 @@ import logging
 import os
 from typing import Any, Dict, Optional
 
+from auth.encoding_utils import normalize_ad_text
+
 logger = logging.getLogger(__name__)
 
 _ERR = {
@@ -43,7 +45,11 @@ def get_user_info_ldap(login: str, config: Optional[Dict[str, Any]] = None) -> d
 
     if not server_uri or not base_dn:
         logger.warning("LDAP_SERVER или LDAP_BASE_DN не заданы.")
-        return dict(_ERR)
+        return {}
+
+    if not bind_user or not bind_pass:
+        logger.debug("LDAP bind не настроен — пропуск (используйте host cache или Windows AD).")
+        return {}
 
     login_safe = "".join(c for c in (login or "") if c.isalnum() or c in "._-")
     if not login_safe:
@@ -61,16 +67,18 @@ def get_user_info_ldap(login: str, config: Optional[Dict[str, Any]] = None) -> d
         conn.search(
             base_dn,
             flt,
-            attributes=["givenName", "sn", "middleName", "department", "title", "displayName"],
+            attributes=[
+                "givenName",
+                "sn",
+                "middleName",
+                "department",
+                "title",
+                "displayName",
+                "mail",
+            ],
         )
         if not conn.entries:
-            return {
-                "first_name": "Не указано",
-                "second_name": "Не указано",
-                "sur_name": "Не указано",
-                "department": "Не указано",
-                "position": "Не указано",
-            }
+            return {}
 
         e = conn.entries[0]
 
@@ -79,7 +87,7 @@ def get_user_info_ldap(login: str, config: Optional[Dict[str, Any]] = None) -> d
                 v = e[name].value
                 if v is None:
                     return ""
-                return str(v).strip()
+                return normalize_ad_text(v)
             except Exception:
                 return ""
 
@@ -97,13 +105,17 @@ def get_user_info_ldap(login: str, config: Optional[Dict[str, Any]] = None) -> d
                 elif len(parts) == 1:
                     gn = parts[0]
 
-        return {
-            "first_name": gn or "Не указано",
-            "second_name": mid or "Не указано",
-            "sur_name": sn or "Не указано",
-            "department": dept or "Не указано",
-            "position": pos or "Не указано",
+        mail = _attr("mail")
+        out = {
+            "first_name": gn,
+            "second_name": mid,
+            "sur_name": sn,
+            "department": dept,
+            "position": pos,
         }
+        if mail:
+            out["email"] = mail
+        return out
     except Exception as ex:
         logger.exception("LDAP get_user_info: %s", ex)
-        return dict(_ERR)
+        return {}
