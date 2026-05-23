@@ -277,6 +277,15 @@ def get_user_info_by_login(login: str) -> dict:
         dict: Информация о пользователе
     """
     try:
+        from auth.ad_host_http import get_user_info_from_host_http
+
+        http_profile = get_user_info_from_host_http(login)
+        if http_profile:
+            return http_profile
+    except Exception:
+        pass
+
+    try:
         from auth.ad_host_cache import get_user_info_from_host_cache
 
         cached = get_user_info_from_host_cache(login)

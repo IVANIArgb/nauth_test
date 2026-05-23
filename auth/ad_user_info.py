@@ -1,11 +1,14 @@
 """
 Модуль для получения информации о пользователе из Active Directory.
 """
-import subprocess
 import json
-import re
 import logging
+import os
+import re
+import subprocess
 from typing import Dict, Optional
+
+from auth.ad_ps_output import decode_powershell_stdout
 
 logger = logging.getLogger(__name__)
 
@@ -65,28 +68,58 @@ class ADUserInfo:
         Returns:
             bool: Успешно ли получены данные
         """
-        # -Filter вместо -Identity: логин уже ограничен sanitize_ad_login (без кавычек и спецсимволов).
+        root = os.path.abspath(os.path.join(os.path.dirname(__file__), os.pardir))
+        ps1 = os.path.join(root, "scripts", "get-ad-user-json.ps1")
+        if os.path.isfile(ps1):
+            try:
+                proc = subprocess.run(
+                    [
+                        "powershell.exe",
+                        "-NoLogo",
+                        "-NoProfile",
+                        "-ExecutionPolicy",
+                        "Bypass",
+                        "-File",
+                        ps1,
+                        self.login,
+                    ],
+                    capture_output=True,
+                    timeout=60,
+                    cwd=root,
+                )
+                if proc.returncode == 0 and proc.stdout.strip():
+                    text = decode_powershell_stdout(proc.stdout)
+                    data = json.loads(text.strip())
+                    self.user_data = {
+                        "GivenName": data.get("first_name"),
+                        "Surname": data.get("sur_name"),
+                        "MiddleName": data.get("second_name"),
+                        "Department": data.get("department"),
+                        "Title": data.get("position"),
+                    }
+                    return True
+            except Exception:
+                pass
+
         login_escaped = self.login.replace("'", "''")
-        command = f"""
-        $u = '{login_escaped}'
-        Get-ADUser -Filter "sAMAccountName -eq '$u'" -Properties GivenName, Surname, MiddleName, Name,
-                    DisplayName, Department, Title, Company, Office, Description |
-        Select-Object GivenName, Surname, MiddleName, Name, DisplayName,
-                    Department, Title, Company, Office, Description |
-        ConvertTo-Json -Depth 1
-        """
+        command = (
+            f"$u = '{login_escaped}'; "
+            "Get-ADUser -Filter \"sAMAccountName -eq '$u'\" "
+            "-Properties GivenName,Surname,MiddleName,Name,DisplayName,Department,Title,Company,Office,Description "
+            "| Select-Object GivenName,Surname,MiddleName,Name,DisplayName,Department,Title,Company,Office,Description "
+            "| ConvertTo-Json -Depth 1 -Compress"
+        )
 
         try:
             result = subprocess.run(
-                ["powershell", "-Command", command],
+                ["powershell.exe", "-NoLogo", "-NoProfile", "-Command", command],
                 capture_output=True,
-                text=True,
                 timeout=20,
-                encoding='cp866'  # Используем cp866 для корректного декодирования русских символов
             )
 
             if result.returncode == 0 and result.stdout.strip():
-                self.user_data = json.loads(result.stdout)
+                text = decode_powershell_stdout(result.stdout)
+                self.user_data = json.loads(text.strip())
                 return True
             return False
 

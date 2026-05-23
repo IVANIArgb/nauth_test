@@ -31,6 +31,8 @@ services:
     restart: unless-stopped
 
   web:
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
     ports:
       - "8000:8000"
     environment:
@@ -50,5 +52,8 @@ services:
       DEFAULT_USER_POSITION: ${DEFAULT_USER_POSITION:-}
       AD_HOST_PROFILE_CACHE_ENABLED: ${AD_HOST_PROFILE_CACHE_ENABLED:-true}
       AD_HOST_PROFILE_CACHE_DIR: ${AD_HOST_PROFILE_CACHE_DIR:-/app/runtime/ad-cache}
+      AD_HOST_PROFILE_URL: ${AD_HOST_PROFILE_URL:-http://host.docker.internal:18080}
+      USERDNSDOMAIN: ${USERDNSDOMAIN:-}
+      USERDOMAIN: ${USERDOMAIN:-}
     volumes:
       - ./runtime/ad-cache:/app/runtime/ad-cache:ro

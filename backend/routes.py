@@ -191,6 +191,7 @@ def register_routes(app: Flask) -> None:
     # User info test JSON endpoint
     @app.get("/user/info-test")
     def user_info_test():
+        import sys
         from flask import g, request
         from database.models import db_manager, User
         
@@ -199,6 +200,28 @@ def register_routes(app: Flask) -> None:
             return jsonify({'error': 'Пользователь не аутентифицирован'}), 401
         
         username = info.get('username')
+        fresh_ad = {}
+        if sys.platform == "win32":
+            try:
+                from auth.auth_script import get_user_info_by_login
+
+                raw = get_user_info_by_login(username) or {}
+                skip = {"не указано", "ошибка", "error", "none", "null"}
+                if any(
+                    (raw.get(k) or "").strip().lower() not in skip
+                    for k in ("sur_name", "first_name", "department", "position")
+                ):
+                    fresh_ad = {
+                        "surname": raw.get("sur_name", ""),
+                        "fst_name": raw.get("first_name", ""),
+                        "sec_name": raw.get("second_name", ""),
+                        "department": raw.get("department", ""),
+                        "position": raw.get("position", ""),
+                    }
+                    parts = [fresh_ad["surname"], fresh_ad["fst_name"], fresh_ad["sec_name"]]
+                    fresh_ad["full_name"] = " ".join(p for p in parts if p).strip()
+            except Exception:
+                pass
         payload = {
             'authenticated': True,
             'username': username,
@@ -212,28 +235,46 @@ def register_routes(app: Flask) -> None:
             'hostname': info.get('hostname'),
         }
         
-        if 'full_name' in info:
-            payload['full_name'] = info.get('full_name')
-        if 'surname' in info:
-            payload['surname'] = info.get('surname')
-        if 'fst_name' in info:
-            payload['fst_name'] = info.get('fst_name')
-        if 'sec_name' in info:
-            payload['sec_name'] = info.get('sec_name')
-        if 'department' in info:
-            payload['department'] = info.get('department')
-        if 'position' in info:
-            payload['position'] = info.get('position')
+        if fresh_ad.get("full_name"):
+            payload["full_name"] = fresh_ad["full_name"]
+        elif "full_name" in info:
+            payload["full_name"] = info.get("full_name")
+        if fresh_ad.get("surname"):
+            payload["surname"] = fresh_ad["surname"]
+        elif "surname" in info:
+            payload["surname"] = info.get("surname")
+        if fresh_ad.get("fst_name"):
+            payload["fst_name"] = fresh_ad["fst_name"]
+        elif "fst_name" in info:
+            payload["fst_name"] = info.get("fst_name")
+        if fresh_ad.get("sec_name"):
+            payload["sec_name"] = fresh_ad["sec_name"]
+        elif "sec_name" in info:
+            payload["sec_name"] = info.get("sec_name")
+        if fresh_ad.get("department"):
+            payload["department"] = fresh_ad["department"]
+        elif "department" in info:
+            payload["department"] = info.get("department")
+        if fresh_ad.get("position"):
+            payload["position"] = fresh_ad["position"]
+        elif "position" in info:
+            payload["position"] = info.get("position")
         if 'principal' in info:
             payload['principal'] = info.get('principal')
         if 'domain' in info:
             payload['domain'] = info.get('domain')
+        if 'realm' in info:
+            payload['realm'] = info.get('realm')
+        if 'email' in info:
+            payload['email'] = info.get('email')
         
         try:
             session = db_manager.get_session()
             try:
                 user = session.query(User).filter(User.username == username.lower()).first()
                 if user:
+                    from auth.new_auth import NewAuth
+
                     def safe_str(value):
                         """Безопасное преобразование в строку"""
                         if value is None:
@@ -246,26 +287,67 @@ def register_routes(app: Flask) -> None:
                         if value_str in ['0', '00', '000', '0000', '00000', '000000']:
                             return ''
                         return value_str
-                    
-                    payload['surname'] = safe_str(user.surname) or payload.get('surname', '')
-                    payload['fst_name'] = safe_str(user.fst_name) or payload.get('fst_name', '')
-                    payload['sec_name'] = safe_str(user.sec_name) or payload.get('sec_name', '')
-                    payload['department'] = safe_str(user.department) or payload.get('department', '')
-                    payload['position'] = safe_str(user.position) or payload.get('position', '')
-                    
+
+                    def pick_profile(g_key: str, db_attr: str) -> str:
+                        gv = (payload.get(g_key) or info.get(g_key) or '').strip()
+                        dbv = safe_str(getattr(user, db_attr, ''))
+                        if gv and not NewAuth._is_placeholder_profile_field(gv):
+                            return gv
+                        if dbv and not NewAuth._is_placeholder_profile_field(dbv):
+                            return dbv
+                        return gv or dbv
+
+                    payload['surname'] = pick_profile('surname', 'surname')
+                    payload['fst_name'] = pick_profile('fst_name', 'fst_name')
+                    payload['sec_name'] = pick_profile('sec_name', 'sec_name')
+                    payload['department'] = pick_profile('department', 'department')
+                    payload['position'] = pick_profile('position', 'position')
+
                     full_name_from_parts = user._get_full_name_from_parts()
-                    payload['full_name'] = (full_name_from_parts or safe_str(user.full_name) or payload.get('full_name', '')).strip()
-                    
+                    fn_db = (full_name_from_parts or safe_str(user.full_name) or '').strip()
+                    fn_g = (payload.get('full_name') or info.get('full_name') or '').strip()
+                    if fn_g and not NewAuth._is_placeholder_profile_field(fn_g) and fn_g != username:
+                        payload['full_name'] = fn_g
+                    elif fn_db and not NewAuth._is_placeholder_profile_field(fn_db):
+                        payload['full_name'] = fn_db
+                    else:
+                        payload['full_name'] = fn_g or fn_db or username
+
                     payload['role'] = user.role
-                    payload['email'] = safe_str(user.email) or ''
-                    payload['principal'] = safe_str(user.principal) or payload.get('principal', '')
-                    payload['realm'] = safe_str(user.realm) or payload.get('domain', '')
-                    payload['last_login'] = user.last_login.isoformat() if user.last_login else None
+
+                    def pick_identity(g_val: str, db_val: str, *, placeholder_check) -> str:
+                        gv = (g_val or "").strip()
+                        dbv = (db_val or "").strip()
+                        if gv and not placeholder_check(gv):
+                            return gv
+                        if dbv and not placeholder_check(dbv):
+                            return dbv
+                        return ""
+
+                    payload["email"] = pick_identity(
+                        info.get("email"),
+                        safe_str(user.email),
+                        placeholder_check=NewAuth._is_placeholder_email,
+                    )
+                    payload["principal"] = pick_identity(
+                        info.get("principal"),
+                        safe_str(user.principal),
+                        placeholder_check=lambda v: "@EXAMPLE.COM" in (v or "").upper(),
+                    )
+                    payload["realm"] = pick_identity(
+                        info.get("realm"),
+                        safe_str(user.realm),
+                        placeholder_check=NewAuth._is_placeholder_realm,
+                    )
+                    payload["last_login"] = user.last_login.isoformat() if user.last_login else None
             finally:
                 session.close()
         except Exception as e:
             pass
-        
+
+        from auth.new_auth import NewAuth
+
+        NewAuth.finalize_user_identity_payload(payload, username)
         return jsonify(payload)
 
     @app.get("/<legacy_dir>/user/info-test")

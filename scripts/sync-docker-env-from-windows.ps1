@@ -33,6 +33,7 @@ Set-EnvKey "DOCKER_AUTH_FALLBACK" "false"
 Set-EnvKey "KERBEROS_GSSAPI_ENABLED" "false"
 Set-EnvKey "AD_HOST_PROFILE_CACHE_ENABLED" "true"
 Set-EnvKey "AD_HOST_PROFILE_CACHE_DIR" "/app/runtime/ad-cache"
+Set-EnvKey "AD_HOST_PROFILE_URL" "http://host.docker.internal:18080"
 
 if ($env:USERDNSDOMAIN) {
     $dns = $env:USERDNSDOMAIN.Trim()

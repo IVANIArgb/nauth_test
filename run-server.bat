@@ -29,6 +29,14 @@ echo [mode] Docker SSO + AD from Windows host
 
 if not exist "runtime\ad-cache" mkdir "runtime\ad-cache"
 
+if not "%USERDNSDOMAIN%"=="" (
+  if exist ".venv\Scripts\python.exe" (
+    echo [AD] Host profile API http://127.0.0.1:18080
+    start "NAUTH-AD-API" /MIN "" ".venv\Scripts\python.exe" scripts\host_ad_profile_api.py
+    ping -n 3 127.0.0.1 >nul
+  )
+)
+
 powershell.exe -NoLogo -NoProfile -ExecutionPolicy Bypass -File "scripts\sync-docker-env-from-windows.ps1"
 powershell.exe -NoLogo -NoProfile -ExecutionPolicy Bypass -File "scripts\refresh-ad-profile-cache.ps1"
 if errorlevel 1 (
