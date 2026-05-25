@@ -76,11 +76,18 @@ if ($env:USERDNSDOMAIN) {
     $parts = @()
     foreach ($p in $dns.Split('.')) { $parts += ('DC=' + $p) }
     $baseDn = $parts -join ','
+    $dnsLow = $dns.ToLower()
     Set-EnvKey 'AD_DNS_DOMAIN' $dns
-    Set-EnvKey 'LDAP_SERVER' ('ldap://' + $dns + ':389')
+    if ($dnsLow -match 'grouphms\.local') {
+        Set-EnvKey 'LDAP_SERVER' ('ldaps://' + $dnsLow + ':636')
+        Set-EnvKey 'LDAP_USE_SSL' 'true'
+    } else {
+        Set-EnvKey 'LDAP_SERVER' ('ldap://' + $dnsLow + ':389')
+        Set-EnvKey 'LDAP_USE_SSL' 'false'
+    }
     Set-EnvKey 'LDAP_BASE_DN' $baseDn
     Set-EnvKey 'KERBEROS_REALM' $realm
-    Write-Host ('.env LDAP: ' + $dns + ' | ' + $baseDn + ' | realm=' + $realm)
+    Write-Host ('.env LDAP: ' + $dnsLow + ' | ' + $baseDn + ' | realm=' + $realm)
 } else {
     Write-Warning 'No USERDNSDOMAIN - LDAP_SERVER/LDAP_BASE_DN not auto-filled'
 }
@@ -95,7 +102,16 @@ if ((-not $sk) -or ($skLow -match 'zamenite|replace|example|dev-key|not-for-prod
     Write-Host 'SECRET_KEY: auto-generated'
 }
 
-# --- LDAP bind: keep real credentials, suggest template if missing ---
+# --- LDAP bind (optional one-shot: set LDAP_SETUP_USER / LDAP_SETUP_PASS before script) ---
+if ($env:LDAP_SETUP_USER) {
+    Set-EnvKey 'LDAP_USER' $env:LDAP_SETUP_USER.Trim()
+    Write-Host 'LDAP_USER: from LDAP_SETUP_USER'
+}
+if ($env:LDAP_SETUP_PASS) {
+    Set-EnvKey 'LDAP_PASSWORD' $env:LDAP_SETUP_PASS
+    Write-Host 'LDAP_PASSWORD: from LDAP_SETUP_PASS'
+}
+
 $ldapUser = Get-EnvKey 'LDAP_USER'
 $ldapPass = Get-EnvKey 'LDAP_PASSWORD'
 
