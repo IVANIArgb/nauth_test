@@ -47,7 +47,13 @@ function Test-BadLdapUser([string]$u) {
 }
 
 # --- always refresh hosting defaults ---
-Set-EnvKey 'WEB_PORT' '8080'
+if ($env:WEB_SETUP_PORT) {
+    Set-EnvKey 'WEB_PORT' $env:WEB_SETUP_PORT.Trim()
+    Write-Host ('WEB_PORT: ' + $env:WEB_SETUP_PORT)
+} else {
+    $wp = Get-EnvKey 'WEB_PORT'
+    if (-not $wp) { Set-EnvKey 'WEB_PORT' '8080' }
+}
 Set-EnvKey 'FLASK_ENV' 'production'
 Set-EnvKey 'TRUST_REMOTE_USER' 'true'
 Set-EnvKey 'TRUST_REMOTE_USER_CONFIRM' 'true'

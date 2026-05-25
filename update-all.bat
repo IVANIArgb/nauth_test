@@ -65,7 +65,9 @@ if not errorlevel 1 (
 
 echo.
 echo OK
-echo   Docker: http://localhost:8080/
+for /f "usebackq tokens=1,* delims==" %%a in (`findstr /b /i "WEB_PORT=" .env 2^>nul`) do set "SITE_PORT=%%b"
+if not defined SITE_PORT set "SITE_PORT=8080"
+echo   Docker: http://localhost:%SITE_PORT%/
 echo   Native: .venv + python run.py  (port 8000, AD without LDAP bind)
 docker compose %DC% ps
 pause
