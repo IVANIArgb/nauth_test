@@ -2,16 +2,18 @@
 # Полная установка на Ubuntu без Docker.
 set -euo pipefail
 
-REPO_URL="${NAUTH_REPO:-https://github.com/IVANIArgb/nauth_test.git}"
-BRANCH="${NAUTH_BRANCH:-tests}"
+REPO_URL="${LSITE_REPO:-${NAUTH_REPO:-https://github.com/IVANIArgb/LSiteSV.git}}"
+BRANCH="${LSITE_BRANCH:-${NAUTH_BRANCH:-main}}"
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 PROJECT_ROOT="$(cd "${SCRIPT_DIR}/../.." && pwd)"
-if [[ -n "${NAUTH_INSTALL_DIR:-}" ]]; then
+if [[ -n "${LSITE_INSTALL_DIR:-}" ]]; then
+  INSTALL_DIR="$LSITE_INSTALL_DIR"
+elif [[ -n "${NAUTH_INSTALL_DIR:-}" ]]; then
   INSTALL_DIR="$NAUTH_INSTALL_DIR"
 elif [[ -f "$PROJECT_ROOT/run.py" ]]; then
   INSTALL_DIR="$PROJECT_ROOT"
 else
-  INSTALL_DIR="${HOME}/nauth_test"
+  INSTALL_DIR="${HOME}/LSiteSV"
 fi
 
 log() { printf '\n[setup] %s\n' "$*"; }

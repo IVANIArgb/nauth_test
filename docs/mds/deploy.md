@@ -1,9 +1,9 @@
-# Развёртывание LearningSiteSV
+# Развёртывание LSiteSV
 
 Пошаговая инструкция для переноса проекта на **Ubuntu-сервер без Docker** (рекомендуемый способ).
 
-**Репозиторий:** https://github.com/IVANIArgb/nauth_test  
-**Ветка:** `main` (или `tests` — актуальная разработка)
+**Репозиторий:** https://github.com/IVANIArgb/LSiteSV  
+**Ветка:** `main`
 
 ---
 
@@ -24,12 +24,12 @@
 
 ```bash
 # Каталог проекта (можно другой путь)
-export NAUTH_INSTALL_DIR=$HOME/nauth_test
-export NAUTH_BRANCH=main
-export NAUTH_REPO=https://github.com/IVANIArgb/nauth_test.git
+export LSITE_INSTALL_DIR=$HOME/LSiteSV
+export LSITE_BRANCH=main
+export LSITE_REPO=https://github.com/IVANIArgb/LSiteSV.git
 
-git clone -b "$NAUTH_BRANCH" "$NAUTH_REPO" "$NAUTH_INSTALL_DIR"
-cd "$NAUTH_INSTALL_DIR"
+git clone -b "$LSITE_BRANCH" "$LSITE_REPO" "$LSITE_INSTALL_DIR"
+cd "$LSITE_INSTALL_DIR"
 
 chmod +x setup-ubuntu.sh run-server.sh update.sh
 chmod +x scripts/deploy/*.sh
@@ -40,8 +40,8 @@ chmod +x scripts/deploy/*.sh
 ### Вариант Б — одной командой
 
 ```bash
-git clone -b main https://github.com/IVANIArgb/nauth_test.git ~/nauth_test && \
-cd ~/nauth_test && \
+git clone -b main https://github.com/IVANIArgb/LSiteSV.git ~/LSiteSV && \
+cd ~/LSiteSV && \
 chmod +x setup-ubuntu.sh run-server.sh update.sh && \
 ./setup-ubuntu.sh
 ```
@@ -73,13 +73,13 @@ chmod +x setup-ubuntu.sh run-server.sh update.sh && \
 При необходимости отредактируйте:
 
 ```bash
-nano ~/nauth_test/.env
+nano ~/LSiteSV/.env
 ```
 
 Дописать недостающие ключи из шаблона автонастройки:
 
 ```bash
-cd ~/nauth_test
+cd ~/LSiteSV
 source venv/bin/activate
 python start/setup_env.py --sync-auto --skip-venv
 ```
@@ -91,7 +91,7 @@ python start/setup_env.py --sync-auto --skip-venv
 ## 3. Запуск сервера
 
 ```bash
-cd ~/nauth_test
+cd ~/LSiteSV
 ./run-server.sh
 ```
 
@@ -103,7 +103,7 @@ cd ~/nauth_test
 
 ```bash
 screen -S learnsite
-cd ~/nauth_test
+cd ~/LSiteSV
 ./run-server.sh
 # Отсоединиться: Ctrl+A, затем D
 # Вернуться: screen -r learnsite
@@ -115,15 +115,15 @@ cd ~/nauth_test
 
 ```ini
 [Unit]
-Description=LearningSiteSV
+Description=LSiteSV
 After=network.target
 
 [Service]
 Type=simple
 User=ВАШ_ПОЛЬЗОВАТЕЛЬ
-WorkingDirectory=/home/ВАШ_ПОЛЬЗОВАТЕЛЬ/nauth_test
-EnvironmentFile=/home/ВАШ_ПОЛЬЗОВАТЕЛЬ/nauth_test/.env
-ExecStart=/home/ВАШ_ПОЛЬЗОВАТЕЛЬ/nauth_test/venv/bin/python run.py
+WorkingDirectory=/home/ВАШ_ПОЛЬЗОВАТЕЛЬ/LSiteSV
+EnvironmentFile=/home/ВАШ_ПОЛЬЗОВАТЕЛЬ/LSiteSV/.env
+ExecStart=/home/ВАШ_ПОЛЬЗОВАТЕЛЬ/LSiteSV/venv/bin/python run.py
 Restart=on-failure
 
 [Install]
@@ -142,7 +142,7 @@ sudo systemctl status learnsite
 ## 4. Обновление после изменений на GitHub
 
 ```bash
-cd ~/nauth_test
+cd ~/LSiteSV
 ./update.sh
 ./run-server.sh
 ```
@@ -166,7 +166,7 @@ cd ~/nauth_test
 ## 6. Windows (разработка у вас)
 
 ```powershell
-cd "путь\к\LearningSiteSV"
+cd "путь\к\LSiteSV"
 git pull origin main
 update.bat
 ```
@@ -225,9 +225,9 @@ curl -s http://127.0.0.1:8000/api/current-user
 ## 10. Переменные окружения для установки
 
 ```bash
-export NAUTH_REPO=https://github.com/IVANIArgb/nauth_test.git
-export NAUTH_BRANCH=main
-export NAUTH_INSTALL_DIR=$HOME/nauth_test
+export LSITE_REPO=https://github.com/IVANIArgb/LSiteSV.git
+export LSITE_BRANCH=main
+export LSITE_INSTALL_DIR=$HOME/LSiteSV
 ```
 
 ---
@@ -236,8 +236,8 @@ export NAUTH_INSTALL_DIR=$HOME/nauth_test
 
 ```bash
 # Установка
-git clone -b main https://github.com/IVANIArgb/nauth_test.git ~/nauth_test
-cd ~/nauth_test && chmod +x *.sh scripts/deploy/*.sh && ./setup-ubuntu.sh
+git clone -b main https://github.com/IVANIArgb/LSiteSV.git ~/LSiteSV
+cd ~/LSiteSV && chmod +x *.sh scripts/deploy/*.sh && ./setup-ubuntu.sh
 
 # Запуск
 ./run-server.sh

@@ -1,22 +1,14 @@
-# LearningSiteSV — система уроков и тестов
+# LSiteSV (LearningSiteSV) — система уроков и тестов
+
+**GitHub:** https://github.com/IVANIArgb/LSiteSV
 
 Учебный портал с курсами, уроками и встроенными тестами. Сейчас **весь учебный контент хранится в файловой системе**, а база данных используется только для пользователей, ролей и прогресса.
 
-## Установка на Windows
+## Установка
 
-Из корня проекта (нужны [Git](https://git-scm.com/download/win) и [Docker Desktop](https://www.docker.com/products/docker-desktop/)):
+**Ubuntu (без Docker):** [`docs/mds/deploy.md`](docs/mds/deploy.md)
 
-```cmd
-.\setup-and-run.bat
-```
-
-Уже есть клон — **обновление с GitHub + Docker**:
-
-```cmd
-.\update.bat
-```
-
-**Развёртывание на Ubuntu (без Docker):** [`docs/mds/deploy.md`](docs/mds/deploy.md)
+**Windows:** `git pull` + `update.bat` (из корня репозитория)
 
 Профиль из **Active Directory без keytab**: `docker/docker.env.sso-ad.example` → `.env`, см. [`docs/mds/docker-sso-ldap-no-keytab.md`](docs/mds/docker-sso-ldap-no-keytab.md). Docker: [`docker/README.md`](docker/README.md).
 

@@ -3,11 +3,14 @@ REM Обновление из git + pip + запуск (без Docker).
 chcp 65001 >nul
 setlocal EnableExtensions
 cd /d "%~dp0..\.."
-if not defined NAUTH_BRANCH set "NAUTH_BRANCH=tests"
 
-git fetch origin %NAUTH_BRANCH% || goto :gitfail
-git checkout -B %NAUTH_BRANCH% origin/%NAUTH_BRANCH% || goto :gitfail
-git pull --ff-only origin %NAUTH_BRANCH% || goto :gitfail
+if not defined LSITE_BRANCH (
+  if defined NAUTH_BRANCH (set "LSITE_BRANCH=%NAUTH_BRANCH%") else (set "LSITE_BRANCH=main")
+)
+
+git fetch origin %LSITE_BRANCH% || goto :gitfail
+git checkout -B %LSITE_BRANCH% origin/%LSITE_BRANCH% || goto :gitfail
+git pull --ff-only origin %LSITE_BRANCH% || goto :gitfail
 
 if not exist "venv\Scripts\python.exe" python -m venv venv
 set "PY=venv\Scripts\python.exe"

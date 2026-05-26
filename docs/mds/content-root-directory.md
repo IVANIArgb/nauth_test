@@ -28,7 +28,7 @@
 Контейнер **не видит** `C:\...` напрямую. Нужен compose с монтированием дисков:
 
 ```powershell
-cd C:\Users\ManakovIV\nauth_test
+cd C:\Users\ManakovIV\LSiteSV
 docker compose -f docker/docker-compose.yml -f docker/docker/docker-compose.windows.yml up -d --build
 ```
 

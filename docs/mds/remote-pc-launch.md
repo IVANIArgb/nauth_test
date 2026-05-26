@@ -34,15 +34,14 @@ git fetch origin tests && git checkout -B tests origin/tests && git pull --ff-on
 
 ```cmd
 setup-windows.bat
-setup-windows.bat D:\Apps\nauth_test tests
+update.bat  (из каталога LSiteSV)
 ```
 
 Переменные перед запуском из `cmd`:
 
 ```cmd
-set NAUTH_REPO=https://github.com/IVANIArgb/nauth_test.git
-set NAUTH_BRANCH=tests
-set NAUTH_USE_DOCKER=1
+set LSITE_REPO=https://github.com/IVANIArgb/LSiteSV.git
+set LSITE_BRANCH=main
 setup-windows.bat
 ```
 
@@ -53,7 +52,7 @@ setup-windows.bat
 Частая причина: файл **`.content_root_dir_override`** в корне проекта (важнее пустого `CONTENT_ROOT_DIR` в `.env`) — там остаётся `C:\Users\Пользователь\...`.
 
 ```powershell
-cd C:\Users\ManakovIV\nauth_test
+cd C:\Users\ManakovIV\LSiteSV
 .\scripts\fix-corporate-install.ps1
 ```
 
