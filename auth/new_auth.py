@@ -36,10 +36,9 @@ class NewAuth:
         app.before_request(self._authenticate_user)
 
     def _is_test_mode(self) -> bool:
-        """Тестовый режим: все пользователи считаются admin.
+        """Тестовый режим функций (роли admin в API/UI, seed, терминал).
 
-        Включается переменной окружения TEST_MODE=true либо app.config['TEST_MODE']=True.
-        Нужен для контейнеров/демо без Kerberos/AD.
+        Включается TEST_MODE=true. Подмена логина — отдельно: TEST_MODE_AUTH_BYPASS.
         """
         try:
             cfg_val = current_app.config.get("TEST_MODE", None)
@@ -47,6 +46,13 @@ class NewAuth:
             cfg_val = None
         env_val = os.environ.get("TEST_MODE", "")
         val = cfg_val if cfg_val is not None else env_val
+        return str(val).strip().lower() in ("true", "1", "yes", "y", "on")
+
+    def _is_test_mode_auth_bypass(self) -> bool:
+        """Подмена аутентификации в TEST_MODE (логин testadmin без Kerberos). По умолчанию true для совместимости."""
+        if not self._is_test_mode():
+            return False
+        val = os.environ.get("TEST_MODE_AUTH_BYPASS", "true")
         return str(val).strip().lower() in ("true", "1", "yes", "y", "on")
 
     def _hosting_strict_sso(self) -> bool:
@@ -225,6 +231,7 @@ class NewAuth:
                 return
 
             test_mode = self._is_test_mode()
+            test_auth_bypass = self._is_test_mode_auth_bypass()
             root_test_mode = self._is_root_test_mode()
             auth_header = request.headers.get('Authorization')
             from_docker_fallback = False
@@ -248,7 +255,7 @@ class NewAuth:
             if root_test_mode and not from_trusted_proxy:
                 username = (os.environ.get("ROOT_TEST_USERNAME") or "root").strip()
 
-            if test_mode and not from_trusted_proxy:
+            if test_auth_bypass and not from_trusted_proxy:
                 # Подмена только если логин не пришёл из доверенного прокси
                 default_user = os.environ.get("TEST_MODE_DEFAULT_USER", "testadmin")
                 username_norm = (username or "").strip().lower()
@@ -262,14 +269,14 @@ class NewAuth:
                 g.user_info = {
                     'username': 'guest',
                     'full_name': 'Guest User',
-                    'role': 'user' if not test_mode else 'admin',
-                    'auth_method': 'none' if not test_mode else 'test_mode',
+                    'role': 'user' if not test_auth_bypass else 'admin',
+                    'auth_method': 'none' if not test_auth_bypass else 'test_mode',
                     'ip_address': request.remote_addr
                 }
                 return
             
             skip_ad = (
-                test_mode or from_docker_fallback or (root_test_mode and not from_trusted_proxy)
+                test_auth_bypass or from_docker_fallback or (root_test_mode and not from_trusted_proxy)
             ) and not from_trusted_proxy
             ad_info: Dict[str, str] = {}
             if not skip_ad:
@@ -326,7 +333,7 @@ class NewAuth:
                             if (root_test_mode and not from_trusted_proxy)
                             else (
                                 'test_mode'
-                                if test_mode
+                                if test_auth_bypass
                                 else (
                                     'kerberos'
                                     if auth_header and auth_header.startswith('Negotiate ')

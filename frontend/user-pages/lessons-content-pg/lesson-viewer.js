@@ -88,6 +88,7 @@ async function loadLesson(lessonId) {
         const data = await response.json();
         
         currentLesson = data;
+        syncLessonCompletedState(data);
         renderLesson(data);
         loadBreadcrumbs(lessonId);
         loadNavigation(lessonId);
@@ -810,6 +811,22 @@ function addActionButtons(lesson) {
     actionsContainer.appendChild(askQuestionBtn);
 }
 
+function syncLessonCompletedState(lesson) {
+    lessonCompleted = !!(lesson && (lesson.is_completed || lesson.lesson_status === 2));
+}
+
+function markLessonCompletedLocally(lessonId) {
+    lessonCompleted = true;
+    if (currentLesson && currentLesson.id === lessonId) {
+        currentLesson.is_completed = true;
+        currentLesson.lesson_status = 2;
+    }
+    const completeBtn = document.querySelector('.btn-complete-lesson');
+    if (completeBtn) {
+        completeBtn.remove();
+    }
+}
+
 // Завершить урок
 async function completeLesson(lessonId) {
     try {
@@ -826,8 +843,7 @@ async function completeLesson(lessonId) {
         if (data.just_completed) {
             showSuccess('Урок завершен!');
         }
-        // Перезагружаем урок
-        loadLesson(lessonId);
+        markLessonCompletedLocally(lessonId);
     } catch (error) {
         console.error('Ошибка:', error);
         showError('Не удалось завершить урок');
@@ -1185,7 +1201,7 @@ function setupVideoTracking(iframe, blockId) {
 
 // Проверка условий завершения урока
 async function checkLessonCompletion() {
-    if (lessonCompleted || !currentLesson) return;
+    if (lessonCompleted || !currentLesson || currentLesson.is_completed || currentLesson.lesson_status === 2) return;
     
     // Проверяем условия:
     // 1. Урок прокручен до конца (scrollProgress >= 95%)
@@ -1222,15 +1238,13 @@ function checkAllVideosWatched() {
 async function autoCompleteLesson() {
     // Не показываем уведомление и не дергаем API, если урок уже пройден
     if (lessonCompleted || currentLesson?.is_completed || currentLesson?.lesson_status === 2) return;
-    
-    lessonCompleted = true;
-    
+
     try {
         if (!currentLesson?.id) {
             console.error('currentLesson.id не определен');
             return;
         }
-        
+
         const response = await fetch(`${API_BASE}/lessons/${currentLesson.id}/complete`, {
             method: 'POST'
         });
@@ -1242,20 +1256,7 @@ async function autoCompleteLesson() {
             if (data.just_completed) {
                 showSuccess('Урок автоматически завершен! Вы просмотрели весь контент.');
             }
-            
-            // Обновляем UI
-            const completeBtn = document.querySelector('.btn-complete-lesson');
-            if (completeBtn) {
-                completeBtn.textContent = 'Урок завершен';
-                completeBtn.disabled = true;
-            }
-            
-            // Перезагружаем урок для обновления статуса
-            setTimeout(() => {
-                if (currentLesson?.id) {
-                    loadLesson(currentLesson.id);
-                }
-            }, 1000);
+            markLessonCompletedLocally(currentLesson.id);
         }
     } catch (error) {
         console.error('Ошибка автоматического завершения урока:', error);

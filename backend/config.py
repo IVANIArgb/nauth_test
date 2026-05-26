@@ -155,8 +155,10 @@ class BaseConfig:
     # 7 дней кеша достаточно для ускорения, но не превращает обновление фронтенда в пытку.
     SEND_FILE_MAX_AGE_DEFAULT = int(os.environ.get("SEND_FILE_MAX_AGE_DEFAULT", 60 * 60 * 24 * 7))  # 7 days
 
-    # Тестовый режим: при включении все пользователи считаются администраторами (для контейнера/демо)
+    # Тестовый режим: функции демо (роли admin в API, seed БД, терминал)
     TEST_MODE = os.environ.get("TEST_MODE", "false").lower() in ("true", "1", "yes")
+    # Подмена логина без Kerberos при TEST_MODE (отключите для реальной аутентификации)
+    TEST_MODE_AUTH_BYPASS = os.environ.get("TEST_MODE_AUTH_BYPASS", "true").lower() in ("true", "1", "yes")
 
     # Docker без Kerberos/AD: подставить логин по умолчанию (не путать с TEST_MODE — роли из БД, без «все админы»).
     # В production запрещён в backend/__init__.py (fail-fast).

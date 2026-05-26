@@ -43,7 +43,7 @@
         </div>
       </header>
         <main class="dashboard">
-          <h1 class="page-title">Статистика всех<br />пользователей</h1>
+          <h1 class="page-title" id="page-title">Статистика</h1>
           
           <!-- Фильтры -->
           <section class="filters-section">
@@ -139,15 +139,29 @@
       const totalDepartmentsEl = document.getElementById('total-departments');
       
       const role = document.body.getAttribute('data-role') || 'user';
+      const isAdminView = role === 'admin' || role === 'super_admin';
+      const pageTitleEl = document.getElementById('page-title');
+      if (pageTitleEl) {
+        pageTitleEl.innerHTML = isAdminView
+          ? 'Статистика всех<br />пользователей'
+          : 'Моя статистика';
+      }
+      if (!isAdminView && departmentFilter) {
+        departmentFilter.style.display = 'none';
+      }
+      if (!isAdminView && searchInput) {
+        searchInput.placeholder = 'Поиск по курсу...';
+      }
       
       // Загрузка данных
       async function loadData() {
         try {
-          await loadStatistics();
-          await loadDepartments();
-          if (role === 'admin') {
+          if (isAdminView) {
+            await loadStatistics();
+            await loadDepartments();
             await loadUsers();
           } else {
+            await loadPersonalStatistics();
             await loadCurrentUser();
           }
         } catch (error) {
@@ -176,7 +190,7 @@
         }
       }
       
-      // Загрузка статистики
+      // Загрузка статистики (только админ)
       async function loadStatistics() {
         const response = await fetch(`${API_BASE}/statistics`);
         if (!response.ok) {
@@ -187,6 +201,33 @@
         activeUsersEl.textContent = data.overview.active_users;
         totalCoursesEl.textContent = data.overview.total_courses;
         totalDepartmentsEl.textContent = data.departments.length;
+      }
+
+      async function loadPersonalStatistics() {
+        const response = await fetch(`${API_BASE}/current-user`);
+        const data = await response.json();
+        if (!response.ok) {
+          throw new Error(data.error || `HTTP error! status: ${response.status}`);
+        }
+        const progress = data.course_progress || [];
+        const completedCourses = progress.filter((cp) => cp.is_completed).length;
+        const lessonsDone = progress.reduce((sum, cp) => sum + (cp.lessons_completed || 0), 0);
+        if (totalUsersEl && totalUsersEl.parentElement) {
+          totalUsersEl.parentElement.querySelector('h3').textContent = 'Мои курсы';
+        }
+        if (activeUsersEl && activeUsersEl.parentElement) {
+          activeUsersEl.parentElement.querySelector('h3').textContent = 'Курсов завершено';
+        }
+        if (totalCoursesEl && totalCoursesEl.parentElement) {
+          totalCoursesEl.parentElement.querySelector('h3').textContent = 'Уроков пройдено';
+        }
+        if (totalDepartmentsEl && totalDepartmentsEl.parentElement) {
+          totalDepartmentsEl.parentElement.querySelector('h3').textContent = 'Отдел';
+        }
+        totalUsersEl.textContent = String(progress.length);
+        activeUsersEl.textContent = String(completedCourses);
+        totalCoursesEl.textContent = String(lessonsDone);
+        totalDepartmentsEl.textContent = data.department || '—';
       }
       
       // Загрузка отделов
@@ -285,8 +326,8 @@
       }
       
       // Обработчики событий
-      departmentFilter.addEventListener('change', () => { if (role === 'admin') loadUsers(); });
-      searchInput.addEventListener('input', debounce(() => { if (role === 'admin') loadUsers(); }, 300));
+      departmentFilter.addEventListener('change', () => { if (isAdminView) loadUsers(); });
+      searchInput.addEventListener('input', debounce(() => { if (isAdminView) loadUsers(); }, 300));
       refreshBtn.addEventListener('click', loadData);
       
       // Экспорт в Excel (заглушка)

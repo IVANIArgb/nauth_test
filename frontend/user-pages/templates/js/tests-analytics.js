@@ -81,8 +81,9 @@
     const sortedLesson = sortTests(lessonTests, sortKey);
     const sortedGlobal = sortTests(globalTests, sortKey);
     if (totalEl) totalEl.textContent = String(filtered.length);
-    if (completedEl) completedEl.textContent = '-';
-    if (fullEl) fullEl.textContent = '-';
+    const passedCount = filtered.filter((t) => t.last_result && t.last_result.passed).length;
+    if (completedEl) completedEl.textContent = String(passedCount);
+    if (fullEl) fullEl.textContent = String(Math.max(0, filtered.length - passedCount));
     renderLessonRows(sortedLesson);
     renderGlobalRows(sortedGlobal);
   }
@@ -954,20 +955,23 @@
     if (lessonTbody) lessonTbody.innerHTML = '<tr><td colspan="5" class="loading">Загрузка...</td></tr>';
     if (globalTbody) globalTbody.innerHTML = '<tr><td colspan="5" class="loading">Загрузка...</td></tr>';
     try {
-      const [userRes, depsRes, testsRes] = await Promise.all([
-        fetchJson(API_BASE + '/current-user').catch(() => ({})),
-        fetchJson(API_BASE + '/departments').catch(() => ({ departments: [] })),
-        fetchJson(API_BASE + '/tests')
-      ]);
-      isAdmin = (userRes.effective_role === 'admin' || userRes.effective_role === 'super_admin');
-      if (deptSelect && Array.isArray(depsRes.departments)) {
-        deptSelect.innerHTML = '<option value="">Все отделы</option>';
-        for (let i = 0; i < depsRes.departments.length; i++) {
-          const opt = document.createElement('option');
-          opt.value = depsRes.departments[i];
-          opt.textContent = depsRes.departments[i];
-          deptSelect.appendChild(opt);
+      const userRes = await fetchJson(API_BASE + '/current-user').catch(() => ({}));
+      isAdmin = (userRes.effective_role === 'admin' || userRes.effective_role === 'super_admin' || userRes.role === 'admin' || userRes.role === 'super_admin');
+      const testsUrl = API_BASE + '/tests';
+      const testsRes = await fetchJson(testsUrl);
+      if (isAdmin) {
+        const depsRes = await fetchJson(API_BASE + '/departments').catch(() => ({ departments: [] }));
+        if (deptSelect && Array.isArray(depsRes.departments)) {
+          deptSelect.innerHTML = '<option value="">Все отделы</option>';
+          for (let i = 0; i < depsRes.departments.length; i++) {
+            const opt = document.createElement('option');
+            opt.value = depsRes.departments[i];
+            opt.textContent = depsRes.departments[i];
+            deptSelect.appendChild(opt);
+          }
         }
+      } else if (deptSelect) {
+        deptSelect.style.display = 'none';
       }
       lastTests = Array.isArray(testsRes.tests) ? testsRes.tests : [];
       applyFilterAndSort();

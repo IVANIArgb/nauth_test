@@ -128,6 +128,26 @@ def _require_admin(user_info: Dict[str, Any] | None) -> Optional[tuple]:
     return jsonify({"error": "Forbidden"}), 403
 
 
+def _db_user_role(session: Session, username: str | None) -> str:
+    """Роль пользователя из БД (источник истины для прав доступа к чужим данным)."""
+    if not username:
+        return "user"
+    uname = str(username).strip().lower()
+    if not uname:
+        return "user"
+    row = session.query(User).filter(User.username == uname).first()
+    if not row:
+        return "user"
+    return (row.role or "user").strip().lower()
+
+
+def _is_admin_like_db(session: Session, user_info: Dict[str, Any] | None) -> bool:
+    """Admin-права по записи в БД (не по cookie/режиму просмотра)."""
+    username = (user_info or {}).get("username")
+    role = _db_user_role(session, username)
+    return role in ("admin", "super_admin")
+
+
 def _forbidden_content_root_path(path: str) -> Optional[str]:
     """Запрет системных и чувствительных каталогов для CONTENT_ROOT_DIR."""
     try:
@@ -3803,22 +3823,22 @@ def list_tests_catalog():
         if not user:
             return jsonify({'error': 'Пользователь не аутентифицирован'}), 401
 
-        effective_role = _effective_role(user_info)
-        is_admin_like = effective_role in ('admin', 'super_admin')
+        is_admin_like = _is_admin_like_db(session, user_info)
+        user_id_q = request.args.get("user_id")
+        if user_id_q is not None and not is_admin_like:
+            return jsonify({"error": "Forbidden"}), 403
 
         # Админ может смотреть каталог тестов "глазами" другого пользователя
         # (нужно для страницы профиля пользователя).
         target_user = user
-        if is_admin_like:
-            user_id_q = request.args.get("user_id")
-            if user_id_q is not None:
-                try:
-                    uid = int(user_id_q)
-                    other = session.query(User).filter(User.id == uid).first()
-                    if other:
-                        target_user = other
-                except Exception:
-                    pass
+        if is_admin_like and user_id_q is not None:
+            try:
+                uid = int(user_id_q)
+                other = session.query(User).filter(User.id == uid).first()
+                if other:
+                    target_user = other
+            except Exception:
+                pass
 
         # 1) Тесты в уроках (FS)
         lesson_tests: list[dict] = []
