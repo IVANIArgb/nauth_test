@@ -16,7 +16,9 @@
 .\update.bat
 ```
 
-Профиль из **Active Directory без keytab**: скопируйте `docker/docker.env.sso-ad.example` → `.env`, укажите `LDAP_*` и `SSO_DEFAULT_USER`, затем `.\update.bat`. Подробности: [`docs/mds/docker-sso-ldap-no-keytab.md`](docs/mds/docker-sso-ldap-no-keytab.md). Docker: [`docker/README.md`](docker/README.md).
+**Развёртывание на Ubuntu (без Docker):** [`docs/mds/deploy.md`](docs/mds/deploy.md)
+
+Профиль из **Active Directory без keytab**: `docker/docker.env.sso-ad.example` → `.env`, см. [`docs/mds/docker-sso-ldap-no-keytab.md`](docs/mds/docker-sso-ldap-no-keytab.md). Docker: [`docker/README.md`](docker/README.md).
 
 ## Фронтенд-структура
 
