@@ -44,7 +44,7 @@ if os.name != "nt" and _is_docker():
         os.environ["CONTENT_ROOT_DIR"] = _fb
         print(
             f"WARNING: CONTENT_ROOT_DIR ({_cr}) недоступен, "
-            f"используется {_fb}. Проверьте volumes в docker-compose."
+            f"используется {_fb}. Проверьте volumes в docker/docker-compose.yml."
         )
 
 from backend import create_app

@@ -21,9 +21,9 @@ Keytab в Linux-контейнере **не нужен**. Пользовател
 
 ```bash
 docker load -i learnsite-web.tar
-cp docker.env.hosting.example .env
+cp docker/docker.env.hosting.example .env
 # отредактировать LDAP_*, SECRET_KEY, TRUSTED_PROXY_IPS
-docker compose -f docker-compose.yml -f docker-compose.hosting.yml up -d
+docker compose -f docker/docker-compose.yml -f docker/docker-compose.hosting.yml up -d
 ```
 
 Сайт: `http://<server>:8080/`

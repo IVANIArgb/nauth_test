@@ -1,24 +1,19 @@
 # Универсальный запуск (Linux / macOS / Windows Docker Desktop).
-# Сборка: docker compose build
-# Запуск:  docker compose up -d
-# Логи:    docker compose logs -f web
+# Из корня репозитория:
+#   docker compose -f docker/docker-compose.yml build
+#   docker compose -f docker/docker-compose.yml up -d
 #
-# Для монтирования рабочего стола Windows (как раньше): см. docker-compose.windows.yml
-#   docker compose -f docker-compose.yml -f docker-compose.windows.yml up -d
+# Windows-тома:  -f docker/docker-compose.yml -f docker/docker-compose.windows.yml
+# Dev (Flask):   -f docker/docker-compose.yml -f docker/docker-compose.dev.yml up
+# Kerberos:      -f docker/docker-compose.yml -f docker/docker-compose.kerberos.yml --env-file .env up -d --build
 #
-# Переменные: см. env.example → скопируйте в .env (кратко: docker.env.example)
-# Отладка без Gunicorn: docker compose -f docker-compose.yml -f docker-compose.dev.yml up
-#
-# Kerberos + AD (LDAP) в контейнере:
-#   scripts\init_kerberos_docker.ps1  или  scripts/init_kerberos_docker.sh
-#   kerberos/env.kerberos.example → фрагменты в .env, реальный http.keytab
-#   docker compose -f docker-compose.yml -f docker-compose.kerberos.yml --env-file .env up -d --build
+# Переменные: .env в корне проекта (шаблон: docker/docker.env.example)
 
 services:
   web:
     build:
-      context: .
-      dockerfile: Dockerfile
+      context: ..
+      dockerfile: docker/Dockerfile
     image: learnsite:web
     container_name: learnsite-web
     ports:

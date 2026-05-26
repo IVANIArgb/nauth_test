@@ -48,7 +48,7 @@ curl -fsSL https://raw.githubusercontent.com/IVANIArgb/nauth_test/main/scripts/i
 
 ```powershell
 cd $env:USERPROFILE\nauth_test
-docker compose -f docker-compose.yml -f docker-compose.sso.yml down
+docker compose -f docker/docker-compose.yml -f docker/docker-compose.sso.yml down
 ```
 
 ## Требования
@@ -59,7 +59,7 @@ docker compose -f docker-compose.yml -f docker-compose.sso.yml down
 
 ## Переменные (.env)
 
-Скопируйте `docker.env.sso.example` → `.env`:
+Скопируйте `docker/docker.env.sso.example` → `.env`:
 
 - `SSO_DEFAULT_USER` — логин после SSO (латиница или кириллица)
 - `WEB_PORT` — внешний порт прокси (по умолчанию 8080)

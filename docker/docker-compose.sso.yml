@@ -1,7 +1,7 @@
 # SSO без keytab: nginx подставляет проверенный X-Remote-User, Flask доверяет только прокси.
 #
 #   copy docker.env.sso.example .env
-#   docker compose -f docker-compose.yml -f docker-compose.sso.yml up -d --build
+#   docker compose -f docker/docker-compose.yml -f docker/docker-compose.sso.yml up -d --build
 #
 # Сайт: http://localhost:${WEB_PORT:-8080}/api/current-user
 # Прямой доступ к приложению (без SSO): http://localhost:8000 — guest/fallback
@@ -24,7 +24,7 @@ services:
         fi
         exec /docker-entrypoint.sh nginx -g 'daemon off;'
     volumes:
-      - ./deploy/nginx/sso-proxy.conf.template:/etc/nginx/templates/default.conf.template:ro
+      - ../deploy/nginx/sso-proxy.conf.template:/etc/nginx/templates/default.conf.template:ro
     depends_on:
       web:
         condition: service_healthy
@@ -57,4 +57,4 @@ services:
       LC_ALL: C.UTF-8
       PYTHONUTF8: "1"
     volumes:
-      - ./runtime/ad-cache:/app/runtime/ad-cache:ro
+      - ../runtime/ad-cache:/app/runtime/ad-cache:ro

@@ -9,14 +9,14 @@ docker compose up -d
 
 Откройте http://localhost:8000 . Данные БД и контент хранятся в именованных томах Docker.
 
-Переменные окружения можно задать через файл `.env` в корне проекта (шаблон: `docker.env.example`).
+Переменные окружения можно задать через файл `.env` в корне проекта (шаблон: `docker/docker.env.example`).
 
 ## Windows + контент с рабочего стола
 
 Если каталоги курсов лежат на Desktop (например `Desktop/learning-content`):
 
 ```bash
-docker compose -f docker-compose.yml -f docker-compose.windows.yml up -d
+docker compose -f docker/docker-compose.yml -f docker/docker-compose.windows.yml up -d
 ```
 
 ## Полезные переменные

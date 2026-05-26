@@ -1,7 +1,7 @@
 # Kerberos (GSSAPI) + LDAP (AD) в контейнере.
 # Перед первым запуском: scripts/init_kerberos_docker.ps1 или .sh
 # Запуск:
-#   docker compose -f docker-compose.yml -f docker-compose.kerberos.yml --env-file .env up -d --build
+#   docker compose -f docker/docker-compose.yml -f docker/docker-compose.kerberos.yml --env-file .env up -d --build
 #
 # Обязательно в .env: KERBEROS_HOSTNAME, LDAP_* (если LDAP_ENABLED=true), замените keytab на реальный.
 
@@ -25,5 +25,5 @@ services:
       LDAP_PASSWORD: ${LDAP_PASSWORD}
       LDAP_USE_SSL: ${LDAP_USE_SSL:-false}
     volumes:
-      - ${KRB5_CONF_PATH:-./kerberos/krb5.conf}:/etc/krb5.conf:ro
-      - ${KRB5_KEYTAB_PATH:-./kerberos/http.keytab}:/etc/krb5.keytab:ro
+      - ${KRB5_CONF_PATH:-../kerberos/krb5.conf}:/etc/krb5.conf:ro
+      - ${KRB5_KEYTAB_PATH:-../kerberos/http.keytab}:/etc/krb5.keytab:ro

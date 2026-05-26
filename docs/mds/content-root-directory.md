@@ -29,10 +29,10 @@
 
 ```powershell
 cd C:\Users\ManakovIV\nauth_test
-docker compose -f docker-compose.yml -f docker-compose.windows.yml up -d --build
+docker compose -f docker/docker-compose.yml -f docker/docker/docker-compose.windows.yml up -d --build
 ```
 
-В `docker-compose.windows.yml` диски монтируются как:
+В `docker/docker/docker-compose.windows.yml` диски монтируются как:
 
 | На ПК | В контейнере |
 |--------|----------------|
@@ -61,13 +61,13 @@ C:\Users\ManakovIV\Desktop\learning-content
 CONTENT_ROOT_DIR=/host/C/Users/ManakovIV/Desktop/learning-content
 ```
 
-Путь **должен** начинаться с `/host/C` или `/host/D` — только если эти тома подключены через `docker-compose.windows.yml`.
+Путь **должен** начинаться с `/host/C` или `/host/D` — только если эти тома подключены через `docker/docker-compose.windows.yml`.
 
 ---
 
 ## Вариант C: Docker без монтирования дисков (только том Docker)
 
-По умолчанию в `docker-compose.yml`:
+По умолчанию в `docker/docker-compose.yml`:
 
 ```env
 CONTENT_ROOT_DIR=/app/categories-data
@@ -92,7 +92,7 @@ CONTENT_ROOT_DIR=/app/external-content
 
 ## Переменные для нестандартного монтирования (Linux / свой путь)
 
-Если в `.env` указан Windows-путь, а контейнер Linux без `docker-compose.windows.yml`, можно задать правило замены:
+Если в `.env` указан Windows-путь, а контейнер Linux без `docker/docker-compose.windows.yml`, можно задать правило замены:
 
 ```env
 EXTERNAL_CONTENT_MOUNT_FROM_WINDOWS=C:/Users/ManakovIV/Desktop
@@ -109,7 +109,7 @@ EXTERNAL_CONTENT_MOUNT_TO_CONTAINER=/host/Desktop
 |---------|---------|
 | `WinError 5` … `C:\Users\Пользователь` | Чужой профиль или старый `.content_root_dir_override` |
 | Путь в UI не применился | Не перезапустили сервер; нет прав super_admin |
-| В Docker «папка не создаётся» | Не смонтирован диск (`docker-compose.windows.yml`) |
+| В Docker «папка не создаётся» | Не смонтирован диск (`docker/docker-compose.windows.yml`) |
 | Снова старый путь | Файл `.content_root_dir_override` в корне репозитория |
 
 Сброс для корпоративного ПК: `.\scripts\fix-corporate-install.ps1`, затем снова выбрать папку через меню.

@@ -10,7 +10,7 @@ Kerberos + AD для Docker
    KERBEROS_HOSTNAME, LDAP_*, REALM.
 
 4) Запуск:
-   docker compose -f docker-compose.yml -f docker-compose.kerberos.yml --env-file .env up -d
+   docker compose -f docker/docker-compose.yml -f docker/docker-compose.kerberos.yml --env-file .env up -d
 
    Либо: scripts\init_kerberos_docker.ps1 (Windows), затем docker compose ...
 

@@ -331,7 +331,7 @@ def admin_content_root():
 
     # В контейнере Windows-путь сам по себе не существует.
     # Универсальное правило: для пути вида "X:/foo/bar" маппим в "/host/X/foo/bar".
-    # Конкретные диски (C:, D:, ...) должны быть примонтированы в docker-compose.windows.yml.
+    # Конкретные диски (C:, D:, ...) должны быть примонтированы в docker/docker-compose.windows.yml.
     new_root: str
     import re
     if os.name != "nt" and re.match(r"^[a-zA-Z]:[\\/]", raw_path):
